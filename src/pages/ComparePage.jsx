@@ -10,6 +10,16 @@ export function ComparePage({ task, setPage, S, statusPalette }) {
   const success = task.subtasks.filter((s) => s.status === "succeeded").length;
   const running = task.subtasks.filter((s) => s.status === "running").length;
 
+  function exportReport() {
+    console.log("导出报告");
+    alert("导出报告功能开发中...");
+  }
+
+  function executeCompare() {
+    console.log("执行综合比较");
+    alert("执行综合比较功能开发中...");
+  }
+
   return (
     <div>
       {!allDone ? (
@@ -49,13 +59,13 @@ export function ComparePage({ task, setPage, S, statusPalette }) {
           title="参数与结果汇总"
           actions={
             <>
-              <Button secondary S={S}>导出报告</Button>
-              <Button disabled={!allDone} S={S}>执行综合比较</Button>
+              <Button secondary onClick={exportReport} S={S}>导出报告</Button>
+              <Button disabled={!allDone} onClick={executeCompare} S={S}>执行综合比较</Button>
             </>
           }
           S={S}
         />
-        <TaskTable subtasks={task.subtasks} onClone={() => {}} onConfig={() => setPage("subtask")} S={S} statusPalette={statusPalette} />
+        <TaskTable subtasks={task.subtasks} onClone={() => {}} onConfig={() => setPage("subtask")} onDelete={() => {}} S={S} statusPalette={statusPalette} />
       </Card>
     </div>
   );

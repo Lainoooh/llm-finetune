@@ -1,4 +1,8 @@
-export function TaskTable({ subtasks, onClone, onConfig, S, statusPalette }) {
+import { Badge } from "./Badge";
+import { Button } from "./Button";
+import { Metric } from "./Metric";
+
+export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPalette }) {
   return (
     <div style={{ marginTop: 20, overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
       <table style={{ ...S.table, minWidth: 1180 }}>
@@ -51,12 +55,86 @@ export function TaskTable({ subtasks, onClone, onConfig, S, statusPalette }) {
               </td>
               <td style={S.td}>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Button secondary onClick={() => onClone(s)} S={S}>
-                    复制
-                  </Button>
-                  <Button secondary onClick={onConfig} S={S}>
-                    配置
-                  </Button>
+                  <button
+                    onClick={() => onClone(s)}
+                    style={{
+                      border: 0,
+                      background: "transparent",
+                      cursor: "pointer",
+                      padding: 6,
+                      borderRadius: 6,
+                      color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#F9FAFB";
+                      e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#e5e7eb" : "#004EA2";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
+                    }}
+                    title="复制子任务"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={onConfig}
+                    style={{
+                      border: 0,
+                      background: "transparent",
+                      cursor: "pointer",
+                      padding: 6,
+                      borderRadius: 6,
+                      color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#F9FAFB";
+                      e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#e5e7eb" : "#004EA2";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
+                    }}
+                    title="编辑配置"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => onDelete(s)}
+                    style={{
+                      border: 0,
+                      background: "transparent",
+                      cursor: "pointer",
+                      padding: 6,
+                      borderRadius: 6,
+                      color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#FEF2F2";
+                      e.currentTarget.style.color = "#EF4444";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
+                    }}
+                    title="删除子任务"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                  </button>
                 </div>
               </td>
             </tr>

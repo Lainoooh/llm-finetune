@@ -13,10 +13,15 @@ export function Breadcrumb({ page, setPage, task, S }) {
     if (page === "subtask") items.push(["task_002 配置", "subtask"]);
   }
 
+  const isLight = S.page.background === "#F8F9FA";
+
   return (
     <div style={{
-      padding: "8px 0",
-      marginBottom: 16,
+      padding: 0,
+      marginBottom: 10,
+      borderBottom: "1px solid",
+      borderColor: isLight ? "#E5E7EB" : "#2a2a2a",
+      paddingBottom: 10,
       display: "flex",
       gap: 8,
       alignItems: "center",
@@ -24,7 +29,7 @@ export function Breadcrumb({ page, setPage, task, S }) {
     }}>
       {items.map(([label, target], i) => (
         <React.Fragment key={`${target}-${i}`}>
-          {i > 0 ? <span style={{ color: S.page.background === "#0a0a0a" ? "#6b7280" : "#cbd5e1" }}>/</span> : null}
+          {i > 0 ? <span style={{ color: isLight ? "#D1D5DB" : "#6b7280", fontWeight: 300 }}>/</span> : null}
           <button
             onClick={() => setPage(target)}
             onMouseEnter={() => setHoverIndex(i)}
@@ -32,12 +37,14 @@ export function Breadcrumb({ page, setPage, task, S }) {
             disabled={i === items.length - 1}
             style={{
               border: 0,
-              borderRadius: 6,
-              padding: "4px 8px",
-              background: hoverIndex === i && i !== items.length - 1 ? (S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e2e8f0") : "transparent",
-              color: i === items.length - 1 ? S.page.color : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
+              borderRadius: 4,
+              padding: "2px 6px",
+              background: "transparent",
+              color: i === items.length - 1
+                ? (isLight ? "#004EA2" : "#a78bfa")
+                : (hoverIndex === i ? (isLight ? "#004EA2" : "#a78bfa") : (isLight ? "#6B7280" : "#9ca3af")),
               cursor: i === items.length - 1 ? "default" : "pointer",
-              fontWeight: i === items.length - 1 ? 600 : 400,
+              fontWeight: i === items.length - 1 ? 700 : 500,
               transition: "all 0.15s ease",
             }}
           >

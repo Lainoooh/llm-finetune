@@ -6,6 +6,7 @@ import { Metric } from "../components/Metric";
 import { Field } from "../components/Field";
 import { Info } from "../components/Info";
 import { SectionTitle } from "../components/SectionTitle";
+import { Breadcrumb } from "../layouts/Breadcrumb";
 import { logs, yamlText, evalYaml, datasetInfo, directoryLines } from "../data/mockData";
 
 export function SubtaskPage({ servers, setPage, S, statusPalette }) {
@@ -21,6 +22,51 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
     return () => clearInterval(timer);
   }, []);
 
+  function stopTraining() {
+    console.log("停止训练");
+    alert("停止训练功能开发中...");
+  }
+
+  function startTraining() {
+    console.log("启动/重试训练");
+    alert("启动训练功能开发中...");
+  }
+
+  function saveConfig() {
+    console.log("保存配置");
+    alert("配置已保存（模拟）");
+  }
+
+  function uploadFiles() {
+    console.log("上传训练/评测文件");
+    alert("上传文件功能开发中...");
+  }
+
+  function syncToRemote() {
+    console.log("同步到远程");
+    alert("同步到远程功能开发中...");
+  }
+
+  function refreshDirectory() {
+    console.log("刷新目录");
+    alert("刷新目录功能开发中...");
+  }
+
+  function downloadLogs() {
+    console.log("下载日志");
+    alert("下载日志功能开发中...");
+  }
+
+  function loadTest() {
+    console.log("加载测试");
+    alert("加载测试功能开发中...");
+  }
+
+  function executeEval() {
+    console.log("执行评测");
+    alert("执行评测功能开发中...");
+  }
+
   const tabs = [
     ["base", "基础配置"],
     ["dataset", "数据集"],
@@ -32,6 +78,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
 
   return (
     <Card S={S}>
+      <Breadcrumb page="subtask" setPage={setPage} task={{ name: "customer_service_v1" }} S={S} />
       <div style={{ ...S.row, borderBottom: "1px solid", borderColor: S.card.border.split(" ")[2], paddingBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Metric label="TASK" value="task_002" wide />
@@ -42,8 +89,8 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
           <Button secondary onClick={() => setPage("taskDetail")} S={S}>
             返回任务详情
           </Button>
-          <Button secondary S={S}>停止训练</Button>
-          <Button S={S}>启动 / 重试</Button>
+          <Button secondary onClick={stopTraining} S={S}>停止训练</Button>
+          <Button onClick={startTraining} S={S}>启动 / 重试</Button>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 16, padding: 8, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 16, flexWrap: "wrap" }}>
@@ -64,7 +111,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
       <div style={{ marginTop: 20, minHeight: 520 }}>
         {tab === "base" && (
           <div>
-            <SectionTitle title="基础配置" actions={<Button secondary S={S}>保存配置</Button>} S={S} />
+            <SectionTitle title="基础配置" actions={<Button secondary onClick={saveConfig} S={S}>保存配置</Button>} S={S} />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
               <Field label="微调训练任务模型名" value="customer_service_v1" onChange={() => {}} S={S} />
               <Field label="子任务名称" value="rank32_lr5e-5" onChange={() => {}} S={S} />
@@ -95,8 +142,8 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
               title="数据集与 dataset_info.json"
               actions={
                 <>
-                  <Button secondary S={S}>上传训练/评测文件</Button>
-                  <Button S={S}>同步到远程</Button>
+                  <Button secondary onClick={uploadFiles} S={S}>上传训练/评测文件</Button>
+                  <Button onClick={syncToRemote} S={S}>同步到远程</Button>
                 </>
               }
               S={S}
@@ -142,7 +189,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
         )}
         {tab === "files" && (
           <div>
-            <SectionTitle title="远程目录" actions={<Button secondary S={S}>刷新目录</Button>} S={S} />
+            <SectionTitle title="远程目录" actions={<Button secondary onClick={refreshDirectory} S={S}>刷新目录</Button>} S={S} />
             <Info label="输出目录" value={`${selected.workDir}/outputs/customer_service_v1/task_002`} />
             <pre style={{ marginTop: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>
               {directoryLines.map((line) => (
@@ -153,7 +200,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
         )}
         {tab === "logs" && (
           <div>
-            <SectionTitle title="实时训练日志" actions={<Button secondary S={S}>下载日志</Button>} S={S} />
+            <SectionTitle title="实时训练日志" actions={<Button secondary onClick={downloadLogs} S={S}>下载日志</Button>} S={S} />
             <pre style={{ background: S.page.background === "#0a0a0a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", borderRadius: 16, padding: 16, height: 430, overflow: "auto" }}>
               {logs.slice(0, count).map((line) => (
                 <div key={line}>{line}</div>
@@ -167,8 +214,8 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
               title="模型测试与评测"
               actions={
                 <>
-                  <Button secondary S={S}>加载测试</Button>
-                  <Button S={S}>执行评测</Button>
+                  <Button secondary onClick={loadTest} S={S}>加载测试</Button>
+                  <Button onClick={executeEval} S={S}>执行评测</Button>
                 </>
               }
               S={S}

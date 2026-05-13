@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { ThemeSwitcher } from "../components/ThemeSwitcher";
 
 export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
-  const [hoverKey, setHoverKey] = useState(null);
-
   const items = [
     ["dashboard", "总览"],
     ["servers", "服务器"],
@@ -13,18 +10,12 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
 
   const active = (key) => (key === "tasks" ? ["tasks", "taskDetail", "subtask"].includes(page) : page === key);
 
-  const getNavBackground = (key) => {
-    if (active(key)) return S.page.background === "#0a0a0a" ? "#667eea" : "#0f172a";
-    if (hoverKey === key) return S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f1f5f9";
-    return "transparent";
-  };
-
   return (
     <aside style={S.sidebar}>
       <div style={{
-        marginBottom: 32,
-        paddingBottom: 20,
-        borderBottom: `1px solid ${S.sidebar.borderRight.split(" ")[2]}`
+        marginBottom: 20,
+        paddingBottom: 16,
+        borderBottom: `1px solid ${S.page.background === "#F8F9FA" ? "#E5E7EB" : "#2a2a2a"}`
       }}>
         <div style={{
           fontSize: 18,
@@ -37,20 +28,34 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
         <button
           key={key}
           onClick={() => setPage(key)}
-          onMouseEnter={() => setHoverKey(key)}
-          onMouseLeave={() => setHoverKey(null)}
           style={{
             ...S.navBtn,
-            background: getNavBackground(key),
-            color: active(key) ? "#fff" : (S.page.background === "#0a0a0a" ? S.page.color : "#475569"),
-            transition: "all 0.15s ease",
+            ...(active(key) ? S.navBtnActive : {}),
+          }}
+          onMouseEnter={(e) => {
+            if (!active(key)) {
+              Object.assign(e.currentTarget.style, S.navBtnHover);
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!active(key)) {
+              Object.assign(e.currentTarget.style, S.navBtn);
+            }
           }}
         >
           {label}
         </button>
       ))}
       <div style={{ flex: 1 }} />
-      <div style={{ marginBottom: 16, background: S.sidebar.background === "#fff" ? "#f8fafc" : "#2d2d2d", borderRadius: 16, padding: 14, fontSize: 12, color: S.sidebar.background === "#fff" ? "#64748b" : "#9ca3af", lineHeight: 1.7 }}>
+      <div style={{
+        marginBottom: 16,
+        background: S.page.background === "#F8F9FA" ? "#F9FAFB" : "#2a2a2a",
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 12,
+        color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af",
+        lineHeight: 1.7
+      }}>
         并行启动；失败不自动重试；所有子任务完成后再比较。
       </div>
       <ThemeSwitcher currentTheme={theme} onThemeChange={onThemeChange} themes={themes} S={S} />

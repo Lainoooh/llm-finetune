@@ -9,20 +9,60 @@ import { statusText } from "../styles/themes";
 
 export function ServersPage({ servers, setServers, S, statusPalette }) {
   const [open, setOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(servers[0].id);
-  const [draft, setDraft] = useState({ user: "", password: "", host: "", workDir: "" });
-  const selected = servers.find((s) => s.id === selectedId) || servers[0];
+  const [selectedId, setSelectedId] = useState(null);
+  const [draft, setDraft] = useState({ name: "", user: "", password: "", host: "", workDir: "" });
+  const [testing, setTesting] = useState(false);
+  const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
+  const isNew = !selectedId;
 
-  function openDetail(id) {
-    const server = servers.find((s) => s.id === id) || servers[0];
+  function openNew() {
+    setSelectedId(null);
+    setDraft({ name: "", user: "", password: "", host: "", workDir: "" });
+    setOpen(true);
+  }
+
+  function openEdit(id) {
+    const server = servers.find((s) => s.id === id);
+    if (!server) return;
     setSelectedId(server.id);
-    setDraft({ user: server.user, password: server.password, host: server.host, workDir: server.workDir });
+    setDraft({ name: server.name, user: server.user, password: server.password, host: server.host, workDir: server.workDir });
     setOpen(true);
   }
 
   function saveServer() {
-    setServers((list) => list.map((s) => (s.id === selected.id ? { ...s, ...draft } : s)));
+    if (isNew) {
+      // 新增服务器
+      const newServer = {
+        id: `srv-${Date.now()}`,
+        ...draft,
+        status: "online",
+        gpu: "待检测",
+        cuda: "待检测",
+        torch: "待检测",
+        llamafactory: "待检测",
+        disk: "待检测",
+      };
+      setServers((list) => [...list, newServer]);
+    } else {
+      // 编辑服务器
+      setServers((list) => list.map((s) => (s.id === selectedId ? { ...s, ...draft } : s)));
+    }
     setOpen(false);
+  }
+
+  function deleteServer(id) {
+    if (confirm("确定要删除这台服务器吗？")) {
+      setServers((list) => list.filter((s) => s.id !== id));
+    }
+  }
+
+  function testConnection() {
+    setTesting(true);
+    // 模拟连通性测试
+    setTimeout(() => {
+      setTesting(false);
+      alert("连通性测试成功！环境信息已刷新。");
+    }, 1500);
   }
 
   return (
@@ -32,10 +72,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
           title="服务器列表"
           desc={`共 ${servers.length} 台服务器`}
           actions={
-            <>
-              <Button secondary S={S}>导入服务器</Button>
-              <Button S={S}>新增服务器</Button>
-            </>
+            <Button onClick={openNew} S={S}>新增服务器</Button>
           }
           S={S}
         />
@@ -71,11 +108,11 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                   <td style={S.td}>{s.disk}</td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <Button secondary onClick={() => openDetail(s.id)} S={S}>
-                        详情
-                      </Button>
-                      <Button secondary onClick={() => openDetail(s.id)} S={S}>
+                      <Button secondary onClick={() => openEdit(s.id)} S={S}>
                         编辑
+                      </Button>
+                      <Button secondary onClick={() => deleteServer(s.id)} S={S}>
+                        删除
                       </Button>
                     </div>
                   </td>
@@ -102,10 +139,12 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
             <div style={{ ...S.row, borderBottom: "1px solid", borderColor: S.card.border.split(" ")[2], paddingBottom: 16 }}>
               <div>
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <b style={{ fontSize: 20, color: S.page.color }}>{selected.name}</b>
-                  <Badge status={selected.status} statusPalette={statusPalette} />
+                  <b style={{ fontSize: 20, color: S.page.color }}>{isNew ? "新增服务器" : "编辑服务器"}</b>
+                  {!isNew && <Badge status={selected.status} statusPalette={statusPalette} />}
                 </div>
-                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", marginTop: 6, fontSize: 13 }}>服务器连接信息与环境信息</div>
+                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", marginTop: 6, fontSize: 13 }}>
+                  {isNew ? "配置新服务器的连接信息" : "服务器连接信息与环境信息"}
+                </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button secondary onClick={() => setOpen(false)} S={S}>
@@ -114,22 +153,35 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                 <Button onClick={saveServer} S={S}>保存</Button>
               </div>
             </div>
-            <SectionTitle title="可编辑连接配置" S={S} />
+
+            <SectionTitle title="连接配置" S={S} />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
+              <Field label="服务器名称" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} S={S} />
               <Field label="连接账号" value={draft.user} onChange={(e) => setDraft({ ...draft, user: e.target.value })} S={S} />
-              <Field label="连接密码" type="password" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} S={S} />
               <Field label="连接地址" value={draft.host} onChange={(e) => setDraft({ ...draft, host: e.target.value })} S={S} />
+              <Field label="连接密码" type="password" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} S={S} />
               <Field label="工作目录" value={draft.workDir} onChange={(e) => setDraft({ ...draft, workDir: e.target.value })} S={S} />
             </div>
-            <SectionTitle title="环境信息" S={S} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-              <Info label="GPU" value={selected.gpu} />
-              <Info label="CUDA" value={selected.cuda} />
-              <Info label="PyTorch" value={selected.torch} />
-              <Info label="LLaMA-Factory" value={selected.llamafactory} />
-              <Info label="磁盘" value={selected.disk} />
-              <Info label="状态" value={statusText[selected.status]} />
+            <div style={{ marginTop: 16 }}>
+              <Button secondary onClick={testConnection} disabled={testing} S={S}>
+                {testing ? "测试中..." : "连通性测试"}
+              </Button>
             </div>
+
+            {!isNew && (
+              <>
+                <div style={{ borderTop: `1px solid ${S.card.border.split(" ")[2]}`, marginTop: 24, marginBottom: 24 }} />
+                <SectionTitle title="环境信息" S={S} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
+                  <Info label="GPU" value={selected.gpu} />
+                  <Info label="CUDA" value={selected.cuda} />
+                  <Info label="PyTorch" value={selected.torch} />
+                  <Info label="LLaMA-Factory" value={selected.llamafactory} />
+                  <Info label="磁盘" value={selected.disk} />
+                  <Info label="状态" value={statusText[selected.status]} />
+                </div>
+              </>
+            )}
           </div>
         </div>
       ) : null}

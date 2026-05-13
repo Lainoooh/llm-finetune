@@ -93,7 +93,7 @@ export function ThemeSwitcher({ currentTheme, onThemeChange, themes, S }) {
               }}
               onMouseEnter={(e) => {
                 if (currentTheme !== key) {
-                  e.currentTarget.style.background = S.sidebar.background === "#fff" ? "#f9fafb" : "#2d2d2d";
+                  e.currentTarget.style.background = S.sidebar.background === "#fff" ? "#f1f5f9" : "#2d2d2d";
                 }
               }}
               onMouseLeave={(e) => {

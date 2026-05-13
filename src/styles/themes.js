@@ -5,7 +5,7 @@ export const themes = {
   light: {
     name: "浅色",
     S: {
-      page: { minHeight: "100vh", background: "#f1f5f9", color: "#0f172a", fontFamily: "Arial, sans-serif" },
+      page: { minHeight: "100vh", background: "#fff", color: "#0f172a", fontFamily: "Arial, sans-serif" },
       layout: { display: "flex" },
       sidebar: { width: 288, height: "100vh", flexShrink: 0, background: "#fff", borderRight: "1px solid #e2e8f0", padding: 20, boxSizing: "border-box", display: "flex", flexDirection: "column" },
       brand: { background: "#0f172a", color: "#fff", borderRadius: 18, padding: 16, marginBottom: 24 },

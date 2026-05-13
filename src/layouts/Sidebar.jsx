@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { ThemeSwitcher } from "../components/ThemeSwitcher";
 
 export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
+  const [hoverKey, setHoverKey] = useState(null);
+
   const items = [
     ["dashboard", "总览"],
     ["servers", "服务器"],
@@ -9,6 +12,12 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
   ];
 
   const active = (key) => (key === "tasks" ? ["tasks", "taskDetail", "subtask"].includes(page) : page === key);
+
+  const getNavBackground = (key) => {
+    if (active(key)) return S.page.background === "#0a0a0a" ? "#667eea" : "#0f172a";
+    if (hoverKey === key) return S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f1f5f9";
+    return "transparent";
+  };
 
   return (
     <aside style={S.sidebar}>
@@ -28,10 +37,13 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
         <button
           key={key}
           onClick={() => setPage(key)}
+          onMouseEnter={() => setHoverKey(key)}
+          onMouseLeave={() => setHoverKey(null)}
           style={{
             ...S.navBtn,
-            background: active(key) ? (S.page.background === "#0a0a0a" ? "#667eea" : "#0f172a") : "transparent",
+            background: getNavBackground(key),
             color: active(key) ? "#fff" : (S.page.background === "#0a0a0a" ? S.page.color : "#475569"),
+            transition: "all 0.15s ease",
           }}
         >
           {label}

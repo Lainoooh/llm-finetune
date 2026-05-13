@@ -12,9 +12,17 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
 
   return (
     <aside style={S.sidebar}>
-      <div style={S.brand}>
-        <div style={{ fontWeight: 800 }}>微调工具平台</div>
-        <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 4 }}>模型微调平台</div>
+      <div style={{
+        marginBottom: 32,
+        paddingBottom: 20,
+        borderBottom: `1px solid ${S.sidebar.borderRight.split(" ")[2]}`
+      }}>
+        <div style={{
+          fontSize: 18,
+          fontWeight: 700,
+          color: S.page.color,
+          letterSpacing: '0.5px'
+        }}>模型微调平台</div>
       </div>
       {items.map(([key, label]) => (
         <button

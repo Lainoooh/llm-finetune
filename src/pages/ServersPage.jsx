@@ -11,6 +11,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState({ name: "", user: "", password: "", host: "", workDir: "" });
+  const [envInfo, setEnvInfo] = useState({ gpu: "", cuda: "", torch: "", llamafactory: "", disk: "", status: "" });
   const [testing, setTesting] = useState(false);
   const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
   const isNew = !selectedId;
@@ -18,6 +19,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   function openNew() {
     setSelectedId(null);
     setDraft({ name: "", user: "", password: "", host: "", workDir: "" });
+    setEnvInfo({ gpu: "", cuda: "", torch: "", llamafactory: "", disk: "", status: "" });
     setOpen(true);
   }
 
@@ -26,6 +28,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
     if (!server) return;
     setSelectedId(server.id);
     setDraft({ name: server.name, user: server.user, password: server.password, host: server.host, workDir: server.workDir });
+    setEnvInfo({ gpu: server.gpu, cuda: server.cuda, torch: server.torch, llamafactory: server.llamafactory, disk: server.disk, status: server.status });
     setOpen(true);
   }
 
@@ -35,17 +38,12 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
       const newServer = {
         id: `srv-${Date.now()}`,
         ...draft,
-        status: "online",
-        gpu: "待检测",
-        cuda: "待检测",
-        torch: "待检测",
-        llamafactory: "待检测",
-        disk: "待检测",
+        ...envInfo,
       };
       setServers((list) => [...list, newServer]);
     } else {
       // 编辑服务器
-      setServers((list) => list.map((s) => (s.id === selectedId ? { ...s, ...draft } : s)));
+      setServers((list) => list.map((s) => (s.id === selectedId ? { ...s, ...draft, ...envInfo } : s)));
     }
     setOpen(false);
   }
@@ -58,11 +56,18 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
 
   function testConnection() {
     setTesting(true);
-    // 模拟连通性测试
+    // 模拟连通性测试，逐个加载环境信息
     setTimeout(() => {
+      setEnvInfo({
+        gpu: "4 × NVIDIA A100 80GB",
+        cuda: "12.1",
+        torch: "2.4.0+cu121",
+        llamafactory: "0.9.2.dev0",
+        disk: "3.8TB / 7.0TB",
+        status: "online",
+      });
       setTesting(false);
-      alert("连通性测试成功！环境信息已刷新。");
-    }, 1500);
+    }, 2000);
   }
 
   return (
@@ -138,13 +143,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
           <div style={{ background: S.card.background, borderRadius: 24, padding: 24, width: "min(980px, 100%)", maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ ...S.row, borderBottom: "1px solid", borderColor: S.card.border.split(" ")[2], paddingBottom: 16 }}>
               <div>
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <b style={{ fontSize: 20, color: S.page.color }}>{isNew ? "新增服务器" : "编辑服务器"}</b>
-                  {!isNew && <Badge status={selected.status} statusPalette={statusPalette} />}
-                </div>
-                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", marginTop: 6, fontSize: 13 }}>
-                  {isNew ? "配置新服务器的连接信息" : "服务器连接信息与环境信息"}
-                </div>
+                <b style={{ fontSize: 20, color: S.page.color }}>{isNew ? "新增服务器" : "编辑服务器"}</b>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button secondary onClick={() => setOpen(false)} S={S}>
@@ -168,20 +167,16 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
               </Button>
             </div>
 
-            {!isNew && (
-              <>
-                <div style={{ borderTop: `1px solid ${S.card.border.split(" ")[2]}`, marginTop: 24, marginBottom: 24 }} />
-                <SectionTitle title="环境信息" S={S} />
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-                  <Info label="GPU" value={selected.gpu} />
-                  <Info label="CUDA" value={selected.cuda} />
-                  <Info label="PyTorch" value={selected.torch} />
-                  <Info label="LLaMA-Factory" value={selected.llamafactory} />
-                  <Info label="磁盘" value={selected.disk} />
-                  <Info label="状态" value={statusText[selected.status]} />
-                </div>
-              </>
-            )}
+            <div style={{ borderTop: `1px solid ${S.card.border.split(" ")[2]}`, marginTop: 24, marginBottom: 24 }} />
+            <SectionTitle title="环境信息" S={S} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
+              <Info label="GPU" value={testing ? "⏳ 加载中..." : (envInfo.gpu || "-")} />
+              <Info label="CUDA" value={testing ? "⏳ 加载中..." : (envInfo.cuda || "-")} />
+              <Info label="PyTorch" value={testing ? "⏳ 加载中..." : (envInfo.torch || "-")} />
+              <Info label="LLaMA-Factory" value={testing ? "⏳ 加载中..." : (envInfo.llamafactory || "-")} />
+              <Info label="磁盘" value={testing ? "⏳ 加载中..." : (envInfo.disk || "-")} />
+              <Info label="状态" value={testing ? "⏳ 加载中..." : (envInfo.status ? statusText[envInfo.status] : "-")} />
+            </div>
           </div>
         </div>
       ) : null}

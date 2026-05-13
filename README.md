@@ -1,4 +1,6 @@
-# 微调工具平台 - 前端项目
+# llm-finetune
+
+LLM 模型微调工具 - 基于 LLaMA-Factory 的可视化训练平台
 
 ## 项目概述
 

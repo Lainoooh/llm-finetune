@@ -6,7 +6,6 @@ export function ThemeSwitcher({ currentTheme, onThemeChange, themes, S }) {
   const themeIcons = {
     light: "☀️",
     dark: "🌙",
-    fresh: "🌊",
   };
 
   return (

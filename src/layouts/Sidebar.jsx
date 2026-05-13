@@ -22,7 +22,7 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
           onClick={() => setPage(key)}
           style={{
             ...S.navBtn,
-            background: active(key) ? (S.page.background === "#1a1a1a" ? "#667eea" : (S.page.background === "#f0f9ff" ? "#0ea5e9" : "#2d3748")) : "transparent",
+            background: active(key) ? (S.page.background === "#0a0a0a" ? "#667eea" : "#6b7280") : "transparent",
             color: active(key) ? "#fff" : S.page.color,
           }}
         >

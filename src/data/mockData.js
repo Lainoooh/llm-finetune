@@ -7,11 +7,17 @@ export const initialServers = [
     password: "********",
     status: "online",
     gpu: "4 × NVIDIA A100 80GB",
+    gpuIds: "0,1,2,3",
     cuda: "12.1",
     torch: "2.4.0+cu121",
-    llamafactory: "0.9.2.dev0",
+    finetuneToolName: "LLaMA-Factory",
+    finetuneTools: {
+      "LLaMA-Factory": "0.9.2.dev0"
+    },
     workDir: "/workspace/finetune-platform",
     disk: "3.8TB / 7.0TB",
+    diskUsed: 3.8,
+    diskTotal: 7.0,
   },
   {
     id: "srv-b",
@@ -21,11 +27,17 @@ export const initialServers = [
     password: "********",
     status: "online",
     gpu: "8 × NVIDIA H800 80GB",
+    gpuIds: "0,1",
     cuda: "12.4",
     torch: "2.5.1+cu124",
-    llamafactory: "0.9.3",
+    finetuneToolName: "LLaMA-Factory",
+    finetuneTools: {
+      "LLaMA-Factory": "0.9.3"
+    },
     workDir: "/data/finetune-platform",
     disk: "9.2TB / 15.0TB",
+    diskUsed: 9.2,
+    diskTotal: 15.0,
   },
 ];
 

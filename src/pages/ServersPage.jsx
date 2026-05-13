@@ -5,21 +5,24 @@ import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
 import { Field } from "../components/Field";
 import { Info } from "../components/Info";
+import Spinner from "../components/Spinner";
 import { statusText } from "../styles/themes";
 
 export function ServersPage({ servers, setServers, S, statusPalette }) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [draft, setDraft] = useState({ name: "", user: "", password: "", host: "", workDir: "" });
-  const [envInfo, setEnvInfo] = useState({ gpu: "", cuda: "", torch: "", llamafactory: "", disk: "", status: "" });
+  const [draft, setDraft] = useState({ name: "", user: "", password: "", host: "", workDir: "", gpuIds: "", finetuneToolName: "LLaMA-Factory" });
+  const [envInfo, setEnvInfo] = useState({ gpu: "", cuda: "", torch: "", finetuneTools: {}, disk: "", status: "" });
   const [testing, setTesting] = useState(false);
   const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
   const isNew = !selectedId;
 
+  const availableTools = ["LLaMA-Factory"]; // 当前支持的微调工具列表
+
   function openNew() {
     setSelectedId(null);
-    setDraft({ name: "", user: "", password: "", host: "", workDir: "" });
-    setEnvInfo({ gpu: "", cuda: "", torch: "", llamafactory: "", disk: "", status: "" });
+    setDraft({ name: "", user: "", password: "", host: "", workDir: "", gpuIds: "", finetuneToolName: "LLaMA-Factory" });
+    setEnvInfo({ gpu: "", cuda: "", torch: "", finetuneTools: {}, disk: "", status: "" });
     setOpen(true);
   }
 
@@ -27,8 +30,16 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
     const server = servers.find((s) => s.id === id);
     if (!server) return;
     setSelectedId(server.id);
-    setDraft({ name: server.name, user: server.user, password: server.password, host: server.host, workDir: server.workDir });
-    setEnvInfo({ gpu: server.gpu, cuda: server.cuda, torch: server.torch, llamafactory: server.llamafactory, disk: server.disk, status: server.status });
+    setDraft({
+      name: server.name,
+      user: server.user,
+      password: server.password,
+      host: server.host,
+      workDir: server.workDir,
+      gpuIds: server.gpuIds || "",
+      finetuneToolName: server.finetuneToolName || "LLaMA-Factory"
+    });
+    setEnvInfo({ gpu: server.gpu, cuda: server.cuda, torch: server.torch, finetuneTools: server.finetuneTools || {}, disk: server.disk, status: server.status });
     setOpen(true);
   }
 
@@ -56,18 +67,34 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
 
   function testConnection() {
     setTesting(true);
-    // 模拟连通性测试，逐个加载环境信息
-    setTimeout(() => {
-      setEnvInfo({
-        gpu: "4 × NVIDIA A100 80GB",
-        cuda: "12.1",
-        torch: "2.4.0+cu121",
-        llamafactory: "0.9.2.dev0",
-        disk: "3.8TB / 7.0TB",
-        status: "online",
-      });
+    // 模拟连通性测试，30秒超时
+    const timer = setTimeout(() => {
+      // 模拟成功/失败（这里随机模拟，实际应该是真实的连接测试）
+      const success = Math.random() > 0.3; // 70% 成功率
+      if (success) {
+        setEnvInfo({
+          gpu: "4 × NVIDIA A100 80GB",
+          cuda: "12.1",
+          torch: "2.4.0+cu121",
+          finetuneTools: {
+            [draft.finetuneToolName]: "0.9.2.dev0"
+          },
+          disk: "3.8TB / 7.0TB",
+          status: "online",
+        });
+      } else {
+        // 失败时设置为断线状态
+        setEnvInfo({
+          gpu: "-",
+          cuda: "-",
+          torch: "-",
+          finetuneTools: {},
+          disk: "-",
+          status: "offline",
+        });
+      }
       setTesting(false);
-    }, 2000);
+    }, 30000); // 30秒超时
   }
 
   return (
@@ -87,10 +114,11 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
               <tr>
                 <th style={S.th}>服务器名称</th>
                 <th style={S.th}>连接地址</th>
+                <th style={S.th}>运行显卡</th>
                 <th style={S.th}>状态</th>
                 <th style={S.th}>GPU</th>
                 <th style={S.th}>CUDA</th>
-                <th style={S.th}>LLaMA-Factory</th>
+                <th style={S.th}>微调工具</th>
                 <th style={S.th}>磁盘</th>
                 <th style={S.th}>操作</th>
               </tr>
@@ -102,15 +130,39 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                     <b>{s.name}</b>
                   </td>
                   <td style={S.td}>
-                    {s.user}@{s.host}
+                    {s.host}
                   </td>
+                  <td style={S.td}>{s.gpuIds || "-"}</td>
                   <td style={S.td}>
                     <Badge status={s.status} statusPalette={statusPalette} />
                   </td>
-                  <td style={S.td}>{s.gpu}</td>
+                  <td style={S.td}>{s.gpu?.replace(/NVIDIA\s*/g, '').replace(/\s*×\s*/g, '×')}</td>
                   <td style={S.td}>{s.cuda}</td>
-                  <td style={S.td}>{s.llamafactory}</td>
-                  <td style={S.td}>{s.disk}</td>
+                  <td style={S.td}>
+                    {s.finetuneToolName && s.finetuneTools && s.finetuneTools[s.finetuneToolName]
+                      ? `${s.finetuneToolName} ${s.finetuneTools[s.finetuneToolName]}`
+                      : "-"}
+                  </td>
+                  <td style={S.td}>
+                    {(() => {
+                      const match = s.disk.match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/);
+                      if (!match) return s.disk;
+                      const used = parseFloat(match[1]);
+                      const total = parseFloat(match[2]);
+                      const percent = Math.round((used / total) * 100);
+                      const color = percent > 80 ? "#ef4444" : percent > 60 ? "#f59e0b" : "#10b981";
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ fontSize: 12, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b" }}>
+                            {s.disk} ({percent}%)
+                          </div>
+                          <div style={{ width: "100%", height: 6, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{ width: `${percent}%`, height: "100%", background: color, transition: "width 0.3s" }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 8 }}>
                       <Button secondary onClick={() => openEdit(s.id)} S={S}>
@@ -149,6 +201,9 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                 <Button secondary onClick={() => setOpen(false)} S={S}>
                   取消
                 </Button>
+                <Button secondary onClick={testConnection} disabled={testing} S={S}>
+                  {testing ? "测试中..." : "连通性测试"}
+                </Button>
                 <Button onClick={saveServer} S={S}>保存</Button>
               </div>
             </div>
@@ -156,26 +211,59 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
             <SectionTitle title="连接配置" S={S} />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
               <Field label="服务器名称" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} S={S} />
+              <Field label="运行显卡" value={draft.gpuIds} onChange={(e) => setDraft({ ...draft, gpuIds: e.target.value })} placeholder="例如: 0,1,2,3" S={S} />
               <Field label="连接账号" value={draft.user} onChange={(e) => setDraft({ ...draft, user: e.target.value })} S={S} />
               <Field label="连接地址" value={draft.host} onChange={(e) => setDraft({ ...draft, host: e.target.value })} S={S} />
               <Field label="连接密码" type="password" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} S={S} />
               <Field label="工作目录" value={draft.workDir} onChange={(e) => setDraft({ ...draft, workDir: e.target.value })} S={S} />
             </div>
+
+            {/* 微调工具选择 */}
             <div style={{ marginTop: 16 }}>
-              <Button secondary onClick={testConnection} disabled={testing} S={S}>
-                {testing ? "测试中..." : "连通性测试"}
-              </Button>
+              <div style={{ fontSize: 13, fontWeight: 500, color: S.page.color, marginBottom: 8 }}>微调工具</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {availableTools.map((tool) => (
+                  <button
+                    key={tool}
+                    onClick={() => setDraft({ ...draft, finetuneToolName: tool })}
+                    style={{
+                      padding: "8px 16px",
+                      border: draft.finetuneToolName === tool ? "1px solid #667eea" : `1px solid ${S.card.border.split(" ")[2]}`,
+                      borderRadius: 8,
+                      background: draft.finetuneToolName === tool ? (S.page.background === "#0a0a0a" ? "#667eea20" : "#667eea10") : "transparent",
+                      color: draft.finetuneToolName === tool ? "#667eea" : S.page.color,
+                      fontSize: 14,
+                      fontWeight: draft.finetuneToolName === tool ? 600 : 400,
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseEnter={(e) => {
+                      if (draft.finetuneToolName !== tool) {
+                        e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f1f5f9";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (draft.finetuneToolName !== tool) {
+                        e.currentTarget.style.background = "transparent";
+                      }
+                    }}
+                  >
+                    {tool}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{ borderTop: `1px solid ${S.card.border.split(" ")[2]}`, marginTop: 24, marginBottom: 24 }} />
             <SectionTitle title="环境信息" S={S} />
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-              <Info label="GPU" value={testing ? "⏳ 加载中..." : (envInfo.gpu || "-")} />
-              <Info label="CUDA" value={testing ? "⏳ 加载中..." : (envInfo.cuda || "-")} />
-              <Info label="PyTorch" value={testing ? "⏳ 加载中..." : (envInfo.torch || "-")} />
-              <Info label="LLaMA-Factory" value={testing ? "⏳ 加载中..." : (envInfo.llamafactory || "-")} />
-              <Info label="磁盘" value={testing ? "⏳ 加载中..." : (envInfo.disk || "-")} />
-              <Info label="状态" value={testing ? "⏳ 加载中..." : (envInfo.status ? statusText[envInfo.status] : "-")} />
+              <Info label="GPU" value={testing ? <Spinner size="small" /> : (envInfo.gpu || "-")} />
+              <Info label="CUDA" value={testing ? <Spinner size="small" /> : (envInfo.cuda || "-")} />
+              <Info label="PyTorch" value={testing ? <Spinner size="small" /> : (envInfo.torch || "-")} />
+              <Info label="微调工具版本" value={testing ? <Spinner size="small" /> : (envInfo.finetuneTools[draft.finetuneToolName] || "-")} />
+              <Info label="磁盘" value={testing ? <Spinner size="small" /> : (envInfo.disk || "-")} />
+              <Info label="状态" value={testing ? <Spinner size="small" /> : (envInfo.status ? <Badge status={envInfo.status} statusPalette={statusPalette} /> : "-")} />
             </div>
           </div>
         </div>

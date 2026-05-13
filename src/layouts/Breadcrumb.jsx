@@ -15,10 +15,8 @@ export function Breadcrumb({ page, setPage, task, S }) {
 
   return (
     <div style={{
-      background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#f8fafc",
-      padding: "8px 16px",
+      padding: "8px 0",
       marginBottom: 16,
-      borderRadius: 8,
       display: "flex",
       gap: 8,
       alignItems: "center",

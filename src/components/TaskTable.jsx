@@ -21,7 +21,7 @@ export function TaskTable({ subtasks, onClone, onConfig, S, statusPalette }) {
                   {s.id}
                 </button>
                 <div>
-                  <button onClick={onConfig} style={{ border: 0, background: "transparent", color: S.page.background === "#1a1a1a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12 }}>
+                  <button onClick={onConfig} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12 }}>
                     {s.name}
                   </button>
                 </div>

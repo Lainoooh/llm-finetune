@@ -22,8 +22,8 @@ export function Breadcrumb({ page, setPage, task, S }) {
               border: 0,
               borderRadius: 8,
               padding: "6px 9px",
-              background: i === items.length - 1 ? (S.page.background === "#1a1a1a" ? "#374151" : "#e5e7eb") : "transparent",
-              color: i === items.length - 1 ? S.page.color : (S.page.background === "#1a1a1a" ? "#9ca3af" : "#64748b"),
+              background: i === items.length - 1 ? (S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb") : "transparent",
+              color: i === items.length - 1 ? S.page.color : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
               cursor: "pointer",
             }}
           >

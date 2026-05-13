@@ -36,8 +36,8 @@ export function ComparePage({ task, setPage, S, statusPalette }) {
                   <span>task_00{i + 1}</span>
                   <span>{x}</span>
                 </div>
-                <div style={{ height: 10, background: S.page.background === "#1a1a1a" ? "#2d2d2d" : "#e2e8f0", borderRadius: 999 }}>
-                  <div style={{ width: `${x}%`, height: "100%", background: S.page.background === "#1a1a1a" ? "#667eea" : "#0f172a", borderRadius: 999 }} />
+                <div style={{ height: 10, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e2e8f0", borderRadius: 999 }}>
+                  <div style={{ width: `${x}%`, height: "100%", background: S.page.background === "#0a0a0a" ? "#667eea" : "#0f172a", borderRadius: 999 }} />
                 </div>
               </div>
             ))}

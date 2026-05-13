@@ -45,7 +45,7 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
                   <button onClick={() => setPage("taskDetail")} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color }}>
                     {r.name}
                   </button>
-                  <div style={{ color: S.page.background === "#1a1a1a" ? "#6b7280" : "#94a3b8", fontSize: 12 }}>{r.id}</div>
+                  <div style={{ color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8", fontSize: 12 }}>{r.id}</div>
                 </td>
                 <td style={S.td}>
                   <Badge status={r.status} statusPalette={statusPalette} />

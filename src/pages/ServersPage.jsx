@@ -84,7 +84,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
             </tbody>
           </table>
         </div>
-        <div style={{ ...S.row, color: S.page.background === "#1a1a1a" ? "#9ca3af" : "#64748b", fontSize: 13, marginTop: 14 }}>
+        <div style={{ ...S.row, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginTop: 14 }}>
           <span>当前第 1 页，每页 10 条</span>
           <div style={{ display: "flex", gap: 8 }}>
             <Button secondary disabled S={S}>
@@ -105,7 +105,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                   <b style={{ fontSize: 20, color: S.page.color }}>{selected.name}</b>
                   <Badge status={selected.status} statusPalette={statusPalette} />
                 </div>
-                <div style={{ color: S.page.background === "#1a1a1a" ? "#9ca3af" : "#64748b", marginTop: 6, fontSize: 13 }}>服务器连接信息与环境信息</div>
+                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", marginTop: 6, fontSize: 13 }}>服务器连接信息与环境信息</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button secondary onClick={() => setOpen(false)} S={S}>

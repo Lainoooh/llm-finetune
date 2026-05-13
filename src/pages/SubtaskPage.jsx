@@ -46,15 +46,15 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
           <Button S={S}>启动 / 重试</Button>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 16, padding: 8, background: S.page.background === "#1a1a1a" ? "#2d2d2d" : "#f8fafc", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 16, padding: 8, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 16, flexWrap: "wrap" }}>
         {tabs.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             style={{
               ...S.btn,
-              background: tab === key ? (S.page.background === "#1a1a1a" ? "#667eea" : "#0f172a") : "transparent",
-              color: tab === key ? "#fff" : (S.page.background === "#1a1a1a" ? "#9ca3af" : "#475569"),
+              background: tab === key ? (S.page.background === "#0a0a0a" ? "#667eea" : "#0f172a") : "transparent",
+              color: tab === key ? "#fff" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#475569"),
             }}
           >
             {label}
@@ -69,7 +69,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
               <Field label="微调训练任务模型名" value="customer_service_v1" onChange={() => {}} S={S} />
               <Field label="子任务名称" value="rank32_lr5e-5" onChange={() => {}} S={S} />
               <label>
-                <div style={{ color: S.page.background === "#1a1a1a" ? "#9ca3af" : "#64748b", fontSize: 12, marginBottom: 6 }}>远程服务器</div>
+                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 12, marginBottom: 6 }}>远程服务器</div>
                 <select value={serverId} onChange={(e) => setServerId(e.target.value)} style={S.input}>
                   {servers.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -105,7 +105,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
               <Field label="训练集" value="qa_sft_train_202605" onChange={() => {}} S={S} />
               <Field label="评测集" value="qa_sft_eval_202605" onChange={() => {}} S={S} />
             </div>
-            <pre style={{ marginTop: 16, padding: 16, background: S.page.background === "#1a1a1a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, overflow: "auto", color: S.page.color }}>{datasetInfo}</pre>
+            <pre style={{ marginTop: 16, padding: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, overflow: "auto", color: S.page.color }}>{datasetInfo}</pre>
           </div>
         )}
         {tab === "params" && (
@@ -136,7 +136,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
                 <Field label="bf16" value="true" onChange={() => {}} S={S} />
               </div>
             ) : (
-              <textarea value={yaml} onChange={(e) => setYaml(e.target.value)} style={{ width: "100%", height: 430, borderRadius: 16, padding: 16, background: S.page.background === "#1a1a1a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", fontFamily: "monospace", border: "1px solid", borderColor: S.card.border.split(" ")[2] }} />
+              <textarea value={yaml} onChange={(e) => setYaml(e.target.value)} style={{ width: "100%", height: 430, borderRadius: 16, padding: 16, background: S.page.background === "#0a0a0a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", fontFamily: "monospace", border: "1px solid", borderColor: S.card.border.split(" ")[2] }} />
             )}
           </div>
         )}
@@ -144,7 +144,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
           <div>
             <SectionTitle title="远程目录" actions={<Button secondary S={S}>刷新目录</Button>} S={S} />
             <Info label="输出目录" value={`${selected.workDir}/outputs/customer_service_v1/task_002`} />
-            <pre style={{ marginTop: 16, background: S.page.background === "#1a1a1a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>
+            <pre style={{ marginTop: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>
               {directoryLines.map((line) => (
                 <div key={line}>{line}</div>
               ))}
@@ -154,7 +154,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
         {tab === "logs" && (
           <div>
             <SectionTitle title="实时训练日志" actions={<Button secondary S={S}>下载日志</Button>} S={S} />
-            <pre style={{ background: S.page.background === "#1a1a1a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", borderRadius: 16, padding: 16, height: 430, overflow: "auto" }}>
+            <pre style={{ background: S.page.background === "#0a0a0a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", borderRadius: 16, padding: 16, height: 430, overflow: "auto" }}>
               {logs.slice(0, count).map((line) => (
                 <div key={line}>{line}</div>
               ))}
@@ -178,7 +178,7 @@ export function SubtaskPage({ servers, setPage, S, statusPalette }) {
               <Info label="业务评测脚本" value="运行中" />
               <Info label="结果可视化" value="待完成" />
             </div>
-            <pre style={{ marginTop: 16, background: S.page.background === "#1a1a1a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>{evalYaml}</pre>
+            <pre style={{ marginTop: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>{evalYaml}</pre>
           </div>
         )}
       </div>

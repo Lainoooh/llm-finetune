@@ -1,10 +1,4 @@
-import { Card } from "../components/Card";
-import { SectionTitle } from "../components/SectionTitle";
-import { Button } from "../components/Button";
-import { Badge } from "../components/Badge";
-import { S } from "../styles/styles";
-
-export function TaskListPage({ task, setPage }) {
+export function TaskListPage({ task, setPage, S, statusPalette }) {
   const rows = [
     {
       id: task.id,
@@ -20,16 +14,17 @@ export function TaskListPage({ task, setPage }) {
   ];
 
   return (
-    <Card>
+    <Card S={S}>
       <SectionTitle
         title="任务列表"
         desc={`共 ${rows.length} 个微调训练任务`}
         actions={
           <>
-            <Button secondary>导入任务</Button>
-            <Button>新建微调训练任务</Button>
+            <Button secondary S={S}>导入任务</Button>
+            <Button S={S}>新建微调训练任务</Button>
           </>
         }
+        S={S}
       />
       <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
         <table style={S.table}>
@@ -47,13 +42,13 @@ export function TaskListPage({ task, setPage }) {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td style={S.td}>
-                  <button onClick={() => setPage("taskDetail")} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer" }}>
+                  <button onClick={() => setPage("taskDetail")} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color }}>
                     {r.name}
                   </button>
-                  <div style={{ color: "#94a3b8", fontSize: 12 }}>{r.id}</div>
+                  <div style={{ color: S.page.background === "#1a1a1a" ? "#6b7280" : "#94a3b8", fontSize: 12 }}>{r.id}</div>
                 </td>
                 <td style={S.td}>
-                  <Badge status={r.status} />
+                  <Badge status={r.status} statusPalette={statusPalette} />
                 </td>
                 <td style={S.td}>{r.modelName}</td>
                 <td style={S.td}>{r.baseModel}</td>
@@ -62,10 +57,10 @@ export function TaskListPage({ task, setPage }) {
                 </td>
                 <td style={S.td}>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <Button secondary onClick={() => setPage("taskDetail")}>
+                    <Button secondary onClick={() => setPage("taskDetail")} S={S}>
                       详情
                     </Button>
-                    <Button secondary>复制</Button>
+                    <Button secondary S={S}>复制</Button>
                   </div>
                 </td>
               </tr>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { S } from "./styles/styles";
+import { useTheme, statusText } from "./styles/themes";
 import { Sidebar } from "./layouts/Sidebar";
 import { Breadcrumb } from "./layouts/Breadcrumb";
 import { Dashboard } from "./pages/Dashboard";
@@ -23,26 +23,30 @@ export default function App() {
   const [page, setPage] = useState("dashboard");
   const [servers, setServers] = useState(initialServers);
   const [task, setTask] = useState(initialTask);
+  const { theme, themeConfig, setTheme, allThemes } = useTheme();
 
   useEffect(() => {
     runSelfTests();
   }, []);
 
+  const S = themeConfig.S;
+  const statusPalette = themeConfig.statusPalette;
+
   const content = useMemo(() => {
-    if (page === "servers") return <ServersPage servers={servers} setServers={setServers} />;
-    if (page === "tasks") return <TaskListPage task={task} setPage={setPage} />;
-    if (page === "taskDetail") return <TaskDetailPage task={task} setTask={setTask} setPage={setPage} />;
-    if (page === "subtask") return <SubtaskPage servers={servers} setPage={setPage} />;
-    if (page === "compare") return <ComparePage task={task} setPage={setPage} />;
-    return <Dashboard servers={servers} task={task} setPage={setPage} />;
-  }, [page, servers, task]);
+    if (page === "servers") return <ServersPage servers={servers} setServers={setServers} S={S} statusPalette={statusPalette} />;
+    if (page === "tasks") return <TaskListPage task={task} setPage={setPage} S={S} statusPalette={statusPalette} />;
+    if (page === "taskDetail") return <TaskDetailPage task={task} setTask={setTask} setPage={setPage} S={S} statusPalette={statusPalette} />;
+    if (page === "subtask") return <SubtaskPage servers={servers} setPage={setPage} S={S} statusPalette={statusPalette} />;
+    if (page === "compare") return <ComparePage task={task} setPage={setPage} S={S} statusPalette={statusPalette} />;
+    return <Dashboard servers={servers} task={task} setPage={setPage} S={S} statusPalette={statusPalette} />;
+  }, [page, servers, task, S, statusPalette]);
 
   return (
     <div style={S.page}>
       <div style={S.layout}>
-        <Sidebar page={page} setPage={setPage} />
+        <Sidebar page={page} setPage={setPage} S={S} theme={theme} onThemeChange={setTheme} themes={allThemes} />
         <main style={S.main}>
-          <Breadcrumb page={page} setPage={setPage} task={task} />
+          <Breadcrumb page={page} setPage={setPage} task={task} S={S} />
           {content}
         </main>
       </div>

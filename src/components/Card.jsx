@@ -1,5 +1,3 @@
-import { S } from "../styles/styles";
-
-export function Card({ children, style }) {
+export function Card({ children, style, S }) {
   return <section style={{ ...S.card, ...style }}>{children}</section>;
 }

@@ -1,6 +1,6 @@
 import React from "react";
 
-export function Breadcrumb({ page, setPage, task }) {
+export function Breadcrumb({ page, setPage, task, S }) {
   const items = [];
   if (page === "dashboard") items.push(["总览", "dashboard"]);
   if (page === "servers") items.push(["服务器", "servers"]);
@@ -15,15 +15,15 @@ export function Breadcrumb({ page, setPage, task }) {
     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, fontSize: 13 }}>
       {items.map(([label, target], i) => (
         <React.Fragment key={`${target}-${i}`}>
-          {i > 0 ? <span style={{ color: "#cbd5e1" }}>/</span> : null}
+          {i > 0 ? <span style={{ color: S.page.background === "#f7f7f8" || S.page.background === "#f0f9ff" ? "#cbd5e1" : "#6b7280" }}>/</span> : null}
           <button
             onClick={() => setPage(target)}
             style={{
               border: 0,
               borderRadius: 8,
               padding: "6px 9px",
-              background: i === items.length - 1 ? "#0f172a" : "#fff",
-              color: i === items.length - 1 ? "#fff" : "#64748b",
+              background: i === items.length - 1 ? (S.page.background === "#1a1a1a" ? "#374151" : "#e5e7eb") : "transparent",
+              color: i === items.length - 1 ? S.page.color : (S.page.background === "#1a1a1a" ? "#9ca3af" : "#64748b"),
               cursor: "pointer",
             }}
           >

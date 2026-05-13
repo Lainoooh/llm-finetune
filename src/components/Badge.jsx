@@ -1,6 +1,6 @@
-import { statusText, statusPalette } from "../styles/styles";
+import { statusText } from "../styles/themes";
 
-export function Badge({ status }) {
+export function Badge({ status, statusPalette }) {
   const [bg, fg, bd] = statusPalette[status] || statusPalette.draft;
   return (
     <span

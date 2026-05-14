@@ -16,8 +16,17 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   const [envInfo, setEnvInfo] = useState({ gpu: "", cuda: "", torch: "", finetuneTools: {}, disk: "", status: "" });
   const [testing, setTesting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, server: null });
+  const [testingServers, setTestingServers] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
   const isNew = !selectedId;
+
+  // 分页计算
+  const totalPages = Math.ceil(servers.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentServers = servers.slice(startIndex, endIndex);
 
   const availableTools = ["LLaMA-Factory"]; // 当前支持的微调工具列表
 
@@ -103,6 +112,55 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
     }, 30000); // 30秒超时
   }
 
+  function testServerConnection(serverId) {
+    setTestingServers(prev => new Set(prev).add(serverId));
+    // 模拟连通性测试，刷新所有环境信息
+    setTimeout(() => {
+      const success = Math.random() > 0.3; // 70% 成功率
+      setServers(list => list.map(s => {
+        if (s.id === serverId) {
+          if (success) {
+            // 成功：更新所有环境信息
+            return {
+              ...s,
+              gpu: "4 × NVIDIA A100 80GB",
+              cuda: "12.1",
+              torch: "2.4.0+cu121",
+              finetuneTools: {
+                [s.finetuneToolName || "LLaMA-Factory"]: "0.9.2.dev0"
+              },
+              disk: "3.8TB / 7.0TB",
+              status: "online",
+            };
+          } else {
+            // 失败：设置为离线状态，清空环境信息
+            return {
+              ...s,
+              gpu: "-",
+              cuda: "-",
+              torch: "-",
+              finetuneTools: {},
+              disk: "-",
+              status: "offline",
+            };
+          }
+        }
+        return s;
+      }));
+      setTestingServers(prev => {
+        const next = new Set(prev);
+        next.delete(serverId);
+        return next;
+      });
+    }, 2000);
+  }
+
+  function batchTestConnection() {
+    currentServers.forEach(server => {
+      testServerConnection(server.id);
+    });
+  }
+
   return (
     <div>
       <Card S={S}>
@@ -110,7 +168,10 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
           title="服务器列表"
           desc={`共 ${servers.length} 台服务器`}
           actions={
-            <Button onClick={openNew} S={S}>新增服务器</Button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button secondary onClick={batchTestConnection} S={S}>连通性检查</Button>
+              <Button onClick={openNew} S={S}>新增服务器</Button>
+            </div>
           }
           S={S}
         />
@@ -130,7 +191,7 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
               </tr>
             </thead>
             <tbody>
-              {servers.map((s) => (
+              {currentServers.map((s) => (
                 <tr key={s.id}>
                   <td style={S.td}>
                     <b>{s.name}</b>
@@ -140,37 +201,84 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                   </td>
                   <td style={S.td}>{s.gpuIds || "-"}</td>
                   <td style={S.td}>
-                    <Badge status={s.status} statusPalette={statusPalette} />
-                  </td>
-                  <td style={S.td}>{s.gpu?.replace(/NVIDIA\s*/g, '').replace(/\s*×\s*/g, '×')}</td>
-                  <td style={S.td}>{s.cuda}</td>
-                  <td style={S.td}>
-                    {s.finetuneToolName && s.finetuneTools && s.finetuneTools[s.finetuneToolName]
-                      ? `${s.finetuneToolName} ${s.finetuneTools[s.finetuneToolName]}`
-                      : "-"}
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : <Badge status={s.status} statusPalette={statusPalette} />}
                   </td>
                   <td style={S.td}>
-                    {(() => {
-                      const match = s.disk.match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/);
-                      if (!match) return s.disk;
-                      const used = parseFloat(match[1]);
-                      const total = parseFloat(match[2]);
-                      const percent = Math.round((used / total) * 100);
-                      const color = percent > 80 ? "#ef4444" : percent > 60 ? "#f59e0b" : "#10b981";
-                      return (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <div style={{ fontSize: 12, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b" }}>
-                            {s.disk} ({percent}%)
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.gpu?.replace(/NVIDIA\s*/g, '').replace(/\s*×\s*/g, '×') || "-")}
+                  </td>
+                  <td style={S.td}>
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.cuda || "-")}
+                  </td>
+                  <td style={S.td}>
+                    {testingServers.has(s.id) ? (
+                      <Spinner size="small" />
+                    ) : (
+                      s.finetuneToolName && s.finetuneTools && s.finetuneTools[s.finetuneToolName]
+                        ? `${s.finetuneToolName} ${s.finetuneTools[s.finetuneToolName]}`
+                        : "-"
+                    )}
+                  </td>
+                  <td style={S.td}>
+                    {testingServers.has(s.id) ? (
+                      <Spinner size="small" />
+                    ) : (
+                      (() => {
+                        const match = s.disk.match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/);
+                        if (!match) return s.disk;
+                        const used = parseFloat(match[1]);
+                        const total = parseFloat(match[2]);
+                        const percent = Math.round((used / total) * 100);
+                        const color = percent > 80 ? "#ef4444" : percent > 60 ? "#f59e0b" : "#10b981";
+                        return (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div style={{ fontSize: 12, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b" }}>
+                              {s.disk} ({percent}%)
+                            </div>
+                            <div style={{ width: "100%", height: 6, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ width: `${percent}%`, height: "100%", background: color, transition: "width 0.3s" }} />
+                            </div>
                           </div>
-                          <div style={{ width: "100%", height: 6, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
-                            <div style={{ width: `${percent}%`, height: "100%", background: color, transition: "width 0.3s" }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()
+                    )}
                   </td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => testServerConnection(s.id)}
+                        disabled={testingServers.has(s.id)}
+                        style={{
+                          border: 0,
+                          background: "transparent",
+                          cursor: testingServers.has(s.id) ? "not-allowed" : "pointer",
+                          padding: 6,
+                          borderRadius: 6,
+                          color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
+                          transition: "all 0.2s",
+                          opacity: testingServers.has(s.id) ? 0.5 : 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!testingServers.has(s.id)) {
+                            e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#F9FAFB";
+                            e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#e5e7eb" : "#004EA2";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!testingServers.has(s.id)) {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
+                          }
+                        }}
+                        title="连通性检查"
+                      >
+                        {testingServers.has(s.id) ? (
+                          <Spinner size="small" />
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                          </svg>
+                        )}
+                      </button>
                       <button
                         onClick={() => openEdit(s.id)}
                         style={{
@@ -233,12 +341,22 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
           </table>
         </div>
         <div style={{ ...S.row, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginTop: 14 }}>
-          <span>当前第 1 页，每页 10 条</span>
+          <span>当前第 {currentPage} 页，每页 {pageSize} 条</span>
           <div style={{ display: "flex", gap: 8 }}>
-            <Button secondary disabled S={S}>
+            <Button
+              secondary
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+              S={S}
+            >
               上一页
             </Button>
-            <Button secondary disabled S={S}>
+            <Button
+              secondary
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              S={S}
+            >
               下一页
             </Button>
           </div>

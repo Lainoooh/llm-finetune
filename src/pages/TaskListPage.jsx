@@ -23,8 +23,8 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
       subtaskCount: task.subtasks.length,
       runningCount: task.subtasks.filter((s) => s.status === "running").length,
     },
-    { id: "bt-002", name: "risk_signal_v2", modelName: "risk_signal_v2", status: "draft", baseModel: "Qwen/Qwen3-14B", subtaskCount: 0, runningCount: 0 },
-    { id: "bt-003", name: "inquiry_generation_abtest", modelName: "inquiry_generation_abtest", status: "succeeded", baseModel: "Qwen/Qwen3-8B", subtaskCount: 4, runningCount: 0 },
+    { id: "ID=bt002", name: "risk_signal_v2", modelName: "risk_signal_v2", status: "draft", baseModel: "Qwen/Qwen3-14B", subtaskCount: 0, runningCount: 0 },
+    { id: "ID=bt003", name: "inquiry_generation_abtest", modelName: "inquiry_generation_abtest", status: "succeeded", baseModel: "Qwen/Qwen3-8B", subtaskCount: 4, runningCount: 0 },
   ];
 
   function openEdit(taskRow) {

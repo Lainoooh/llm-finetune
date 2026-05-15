@@ -56,21 +56,20 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
     <Card S={S}>
       <Breadcrumb page="taskDetail" setPage={setPage} task={task} S={S} />
 
-      {/* 顶部信息区域 - 表格式 */}
+      {/* 顶部信息区域 */}
       <div style={{ borderBottom: "1px solid", borderColor: S.card.border.split(" ")[2], paddingBottom: 16, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 24, fontSize: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af", fontWeight: 500 }}>任务名称:</span>
-              <span style={{ color: S.page.color, fontWeight: 700, fontSize: 15 }}>{task.modelName}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af", fontWeight: 500 }}>ID:</span>
-              <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af", fontWeight: 600 }}>{task.id}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af", fontWeight: 500 }}>状态:</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ color: S.page.color, fontWeight: 700, fontSize: 18 }}>{task.name}</span>
               <Badge status={task.status} statusPalette={statusPalette} />
+            </div>
+            <div style={{ fontSize: 12, color: S.page.background === "#F8F9FA" ? "#9CA3AF" : "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              <span>{task.id}</span>
+              <span style={{ color: S.page.background === "#F8F9FA" ? "#D1D5DB" : "#4b5563" }}>|</span>
+              <span>训练模型名：{task.modelName}</span>
+              <span style={{ color: S.page.background === "#F8F9FA" ? "#D1D5DB" : "#4b5563" }}>|</span>
+              <span>基模：{task.baseModel}</span>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -80,7 +79,7 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
         </div>
 
         {/* 统计信息 */}
-        <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
+        <div style={{ display: "flex", gap: 16, fontSize: 13, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981" }}></div>
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>成功: {succeeded}</span>

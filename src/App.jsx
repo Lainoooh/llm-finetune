@@ -64,7 +64,7 @@ export default function App() {
     if (page === "servers") return <ServersPage servers={servers} setServers={setServers} S={S} statusPalette={statusPalette} />;
     if (page === "tasks") return <TaskListPage task={task} setPage={handleSetPage} S={S} statusPalette={statusPalette} />;
     if (page === "taskDetail") return <TaskDetailPage task={task} setTask={setTask} setPage={handleSetPage} S={S} statusPalette={statusPalette} />;
-    if (page === "subtask") return <SubtaskPage servers={servers} setPage={handleSetPage} S={S} statusPalette={statusPalette} />;
+    if (page === "subtask") return <SubtaskPage task={task} servers={servers} setPage={handleSetPage} S={S} statusPalette={statusPalette} />;
     if (page === "compare") return <ComparePage task={task} setPage={handleSetPage} S={S} statusPalette={statusPalette} />;
     return <Dashboard servers={servers} task={task} setPage={handleSetPage} S={S} statusPalette={statusPalette} />;
   }, [page, servers, task, S, statusPalette]);

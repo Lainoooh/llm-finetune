@@ -42,9 +42,10 @@ export const initialServers = [
 ];
 
 export const initialTask = {
-  id: "bt-001",
+  id: "ID=bt001",
   name: "customer_service_v1",
   modelName: "customer_service_v1",
+  baseModel: "Qwen3-8B",
   status: "waiting",
   subtasks: [
     {

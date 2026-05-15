@@ -6,12 +6,17 @@ import { Badge } from "../components/Badge";
 import { Field } from "../components/Field";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Breadcrumb } from "../layouts/Breadcrumb";
+import { SearchBar } from "../components/SearchBar";
+import { Pagination } from "../components/Pagination";
 
 export function TaskListPage({ task, setPage, S, statusPalette }) {
   const [editOpen, setEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editDraft, setEditDraft] = useState({ name: "", modelName: "", baseModel: "" });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, task: null });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const rows = [
     {
@@ -26,6 +31,28 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
     { id: "ID=bt002", name: "risk_signal_v2", modelName: "risk_signal_v2", status: "draft", baseModel: "Qwen/Qwen3-14B", subtaskCount: 0, runningCount: 0 },
     { id: "ID=bt003", name: "inquiry_generation_abtest", modelName: "inquiry_generation_abtest", status: "succeeded", baseModel: "Qwen/Qwen3-8B", subtaskCount: 4, runningCount: 0 },
   ];
+
+  // 搜索过滤
+  const filteredTasks = rows.filter(taskRow => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      taskRow.name.toLowerCase().includes(searchLower) ||
+      taskRow.id.toLowerCase().includes(searchLower) ||
+      taskRow.modelName.toLowerCase().includes(searchLower) ||
+      taskRow.baseModel.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // 分页逻辑
+  const totalPages = Math.ceil(filteredTasks.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentTasks = filteredTasks.slice(startIndex, startIndex + pageSize);
+
+  // 搜索处理
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   function openEdit(taskRow) {
     setEditingTask(taskRow);
@@ -65,17 +92,26 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
   }
 
   return (
-    <Card S={S}>
-      <Breadcrumb page="tasks" setPage={setPage} task={task} S={S} />
-      <SectionTitle
-        title="任务列表"
-        desc={`共 ${rows.length} 个微调训练任务`}
-        actions={
-          <Button onClick={createNewTask} S={S}>新建微调训练任务</Button>
-        }
-        S={S}
-      />
-      <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card S={S} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Breadcrumb page="tasks" setPage={setPage} task={task} S={S} />
+        <SectionTitle
+          title="任务列表"
+          desc={`共 ${filteredTasks.length} 个微调训练任务`}
+          actions={
+            <Button onClick={createNewTask} S={S}>新建微调训练任务</Button>
+          }
+          S={S}
+        />
+
+        <SearchBar
+          value={searchTerm}
+          onChange={handleSearch}
+          placeholder="搜索任务名、任务ID、模型名或基础模型..."
+          S={S}
+        />
+
+        <div style={{ flex: 1, overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
         <table style={S.table}>
           <thead>
             <tr>
@@ -88,7 +124,7 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {currentTasks.map((r) => (
               <tr key={r.id}>
                 <td style={S.td}>
                   <button onClick={() => setPage("taskDetail")} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, display: "block", padding: 0, textAlign: "left" }}>
@@ -220,7 +256,17 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
         </table>
       </div>
 
-      {/* 编辑任务弹窗 */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredTasks.length}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        S={S}
+      />
+    </Card>
+
+    {/* 编辑任务弹窗 */}
       {editOpen ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 50 }}>
           <div style={{ background: S.card.background, borderRadius: 24, padding: 24, width: "min(680px, 100%)", maxHeight: "90vh", overflow: "auto" }}>
@@ -258,6 +304,6 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
         danger={true}
         S={S}
       />
-    </Card>
+    </div>
   );
 }

@@ -7,6 +7,8 @@ import { Field } from "../components/Field";
 import { Info } from "../components/Info";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import Spinner from "../components/Spinner";
+import { SearchBar } from "../components/SearchBar";
+import { Pagination } from "../components/Pagination";
 import { statusText } from "../styles/themes";
 
 export function ServersPage({ servers, setServers, S, statusPalette }) {
@@ -18,15 +20,32 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, server: null });
   const [testingServers, setTestingServers] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const pageSize = 10;
   const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
   const isNew = !selectedId;
 
+  // 搜索过滤
+  const filteredServers = servers.filter(server => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      server.name.toLowerCase().includes(searchLower) ||
+      server.host.toLowerCase().includes(searchLower) ||
+      (server.gpu && server.gpu.toLowerCase().includes(searchLower))
+    );
+  });
+
   // 分页计算
-  const totalPages = Math.ceil(servers.length / pageSize);
+  const totalPages = Math.ceil(filteredServers.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const currentServers = servers.slice(startIndex, endIndex);
+  const currentServers = filteredServers.slice(startIndex, endIndex);
+
+  // 搜索处理
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   const availableTools = ["LLaMA-Factory"]; // 当前支持的微调工具列表
 
@@ -162,21 +181,37 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   }
 
   return (
-    <div>
-      <Card S={S}>
-        <SectionTitle
-          title="服务器列表"
-          desc={`共 ${servers.length} 台服务器`}
-          actions={
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button secondary onClick={batchTestConnection} S={S}>连通性检查</Button>
-              <Button onClick={openNew} S={S}>新增服务器</Button>
-            </div>
-          }
-          S={S}
-        />
-        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
-          <table style={S.table}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card style={{ flex: 1, display: 'flex', flexDirection: 'column' }} S={S}>
+        {/* 第一行：标题和按钮 */}
+        <div>
+          <SectionTitle
+            title="服务器列表"
+            desc={`共 ${filteredServers.length} 台服务器${searchTerm ? ` (搜索结果)` : ''}`}
+            actions={
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button secondary onClick={batchTestConnection} S={S}>连通性检查</Button>
+                <Button onClick={openNew} S={S}>新增服务器</Button>
+              </div>
+            }
+            S={S}
+          />
+        </div>
+
+        {/* 第二行：搜索框（独立） */}
+        <div style={{ marginTop: 16, marginBottom: 16 }}>
+          <SearchBar
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="搜索服务器名称、地址、GPU..."
+            S={S}
+          />
+        </div>
+
+        {/* 可滚动区域：表格 */}
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
+            <table style={S.table}>
             <thead>
               <tr>
                 <th style={S.th}>服务器名称</th>
@@ -340,29 +375,21 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
             </tbody>
           </table>
         </div>
-        <div style={{ ...S.row, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginTop: 14 }}>
-          <span>当前第 {currentPage} 页，每页 {pageSize} 条</span>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button
-              secondary
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => p - 1)}
-              S={S}
-            >
-              上一页
-            </Button>
-            <Button
-              secondary
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
-              S={S}
-            >
-              下一页
-            </Button>
-          </div>
-        </div>
-      </Card>
-      {open ? (
+      </div>
+
+      {/* 固定区域：分页 */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={filteredServers.length}
+        onPageChange={setCurrentPage}
+        S={S}
+      />
+    </Card>
+
+    {/* 弹窗 */}
+    {open ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 50 }}>
           <div style={{ background: S.card.background, borderRadius: 24, padding: 24, width: "min(980px, 100%)", maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ ...S.row, borderBottom: "1px solid", borderColor: S.card.border.split(" ")[2], paddingBottom: 16 }}>

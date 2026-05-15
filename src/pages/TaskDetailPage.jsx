@@ -7,9 +7,36 @@ import { Info } from "../components/Info";
 import { TaskTable } from "../components/TaskTable";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Breadcrumb } from "../layouts/Breadcrumb";
+import { SearchBar } from "../components/SearchBar";
+import { Pagination } from "../components/Pagination";
 
 export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, subtask: null });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // 搜索过滤
+  const filteredSubtasks = task.subtasks.filter(subtask => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      subtask.id.toLowerCase().includes(searchLower) ||
+      subtask.name.toLowerCase().includes(searchLower) ||
+      subtask.serverName.toLowerCase().includes(searchLower) ||
+      subtask.gpu.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // 分页逻辑
+  const totalPages = Math.ceil(filteredSubtasks.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentSubtasks = filteredSubtasks.slice(startIndex, startIndex + pageSize);
+
+  // 搜索处理
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   function cloneTask(sub) {
     const next = `task_${String(task.subtasks.length + 1).padStart(3, "0")}`;
@@ -48,12 +75,13 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
     setTask({ ...task, subtasks: [...task.subtasks, newSubtask] });
   }
 
-  const running = task.subtasks.filter((s) => s.status === "running").length;
-  const succeeded = task.subtasks.filter((s) => s.status === "succeeded").length;
-  const failed = task.subtasks.filter((s) => s.status === "failed").length;
+  const running = filteredSubtasks.filter((s) => s.status === "running").length;
+  const succeeded = filteredSubtasks.filter((s) => s.status === "succeeded").length;
+  const failed = filteredSubtasks.filter((s) => s.status === "failed").length;
 
   return (
-    <Card S={S}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card S={S} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Breadcrumb page="taskDetail" setPage={setPage} task={task} S={S} />
 
       {/* 顶部信息区域 */}
@@ -93,13 +121,34 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>失败: {failed}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>待处理: {task.subtasks.length - succeeded - running - failed}</span>
+            <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>待处理: {filteredSubtasks.length - succeeded - running - failed}</span>
           </div>
-          <div style={{ fontWeight: 600, color: S.page.color }}>总计: {task.subtasks.length}</div>
+          <div style={{ fontWeight: 600, color: S.page.color }}>总计: {filteredSubtasks.length}</div>
         </div>
       </div>
 
-      <TaskTable subtasks={task.subtasks} onClone={cloneTask} onConfig={() => setPage("subtask")} onDelete={deleteSubtask} S={S} statusPalette={statusPalette} />
+      <SearchBar
+        value={searchTerm}
+        onChange={handleSearch}
+        placeholder="搜索子任务ID、名称、服务器或GPU..."
+        S={S}
+      />
+
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <TaskTable subtasks={currentSubtasks} onClone={cloneTask} onConfig={() => setPage("subtask")} onDelete={deleteSubtask} S={S} statusPalette={statusPalette} />
+      </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredSubtasks.length}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        S={S}
+      />
+    </Card>
+
+    {/* 删除确认弹窗 */}
 
       <ConfirmDialog
         open={deleteConfirm.open}
@@ -111,6 +160,6 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
         danger={true}
         S={S}
       />
-    </Card>
+    </div>
   );
 }

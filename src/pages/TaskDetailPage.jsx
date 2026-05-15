@@ -168,9 +168,9 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
             <button
               onClick={() => setOpenStatusDropdown(!openStatusDropdown)}
               style={{
-                padding: '7px 12px',
+                padding: '3px 8px',
                 border: `2px solid ${statusFilter !== 'all' ? '#004EA2' : (S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0")}`,
-                borderRadius: 8,
+                borderRadius: 6,
                 background: statusFilter !== 'all'
                   ? (S.page.background === "#0a0a0a" ? "#004EA215" : "#F0F7FF")
                   : (S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff"),
@@ -294,10 +294,10 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
           <div style={{ width: 1, height: 20, background: S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0" }} />
 
           {/* 搜索框 */}
-          <div style={{ position: 'relative', width: 220 }}>
+          <div style={{ position: 'relative', width: 200 }}>
             <div style={{
               position: 'absolute',
-              left: 14,
+              left: 10,
               top: '50%',
               transform: 'translateY(-50%)',
               pointerEvents: 'none',
@@ -305,7 +305,7 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
               display: 'flex',
               alignItems: 'center',
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
               </svg>
@@ -318,8 +318,8 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
               placeholder="搜索子任务..."
               style={{
                 width: '100%',
-                fontSize: 13,
-                padding: '8px 38px 8px 38px',
+                fontSize: 12,
+                padding: '4px 32px 4px 32px',
                 border: `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
                 borderRadius: 4,
                 background: S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff",
@@ -346,14 +346,14 @@ export function TaskDetailPage({ task, setTask, setPage, S, statusPalette }) {
                 }}
                 style={{
                   position: 'absolute',
-                  right: 10,
+                  right: 8,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   border: 0,
                   background: S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb",
                   cursor: 'pointer',
-                  padding: 4,
-                  borderRadius: 4,
+                  padding: 3,
+                  borderRadius: 3,
                   color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6b7280",
                   display: 'flex',
                   alignItems: 'center',

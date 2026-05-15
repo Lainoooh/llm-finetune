@@ -4,7 +4,7 @@ import { Metric } from "./Metric";
 
 export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPalette }) {
   return (
-    <div style={{ marginTop: 20, overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 6 }}>
+    <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 6 }}>
       <table style={{ ...S.table, minWidth: 1000 }}>
         <thead>
           <tr>

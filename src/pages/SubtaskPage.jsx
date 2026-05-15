@@ -153,49 +153,52 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 4, marginTop: 8, padding: "4px", background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#e2e8f0", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 10, position: "relative" }}>
-        {/* 滑动指示器 */}
-        <div
-          style={{
-            position: "absolute",
-            top: 4,
-            left: indicatorStyle.left,
-            width: indicatorStyle.width,
-            height: "calc(100% - 8px)",
-            background: "#004EA2",
-            borderRadius: 8,
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            boxShadow: "0 2px 8px rgba(0, 78, 162, 0.3)",
-            zIndex: 0,
-          }}
-        />
-        {tabs.map(([key, label]) => (
-          <button
-            key={key}
-            ref={(el) => (tabRefs.current[key] = el)}
-            onClick={() => setTab(key)}
+      {/* 滑动导航 - 拉通整个页面宽度 */}
+      <div style={{ margin: "8px -24px 0 -24px", padding: "4px 24px", background: S.page.background === "#0a0a0a" ? "#1a2332" : "#F0F7FF", borderTop: "1px solid", borderBottom: "1px solid", borderColor: S.page.background === "#0a0a0a" ? "#2a3a4a" : "#D1E3F8" }}>
+        <div style={{ display: "flex", gap: 4, position: "relative" }}>
+          {/* 滑动指示器 */}
+          <div
             style={{
-              border: 0,
+              position: "absolute",
+              top: 0,
+              left: indicatorStyle.left,
+              width: indicatorStyle.width,
+              height: "100%",
+              background: "#004EA2",
               borderRadius: 8,
-              padding: "8px 16px",
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-              background: "transparent",
-              color: tab === key ? "#fff" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
-              position: "relative",
-              zIndex: 1,
-              transition: "color 0.2s ease-out",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              boxShadow: "0 2px 8px rgba(0, 78, 162, 0.3)",
+              zIndex: 0,
             }}
-          >
-            {label}
-          </button>
-        ))}
+          />
+          {tabs.map(([key, label]) => (
+            <button
+              key={key}
+              ref={(el) => (tabRefs.current[key] = el)}
+              onClick={() => setTab(key)}
+              style={{
+                border: 0,
+                borderRadius: 8,
+                padding: "8px 16px",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14,
+                background: "transparent",
+                color: tab === key ? "#fff" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
+                position: "relative",
+                zIndex: 1,
+                transition: "color 0.2s ease-out",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div style={{ marginTop: 20, minHeight: 520 }}>
         {tab === "base" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <div style={{ marginBottom: 16 }}>
               <Button secondary onClick={saveConfig} S={S}>保存配置</Button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>

@@ -74,9 +74,9 @@ export default function App() {
     <div style={S.page}>
       <div style={S.layout}>
         <Sidebar page={page} setPage={handleSetPage} S={S} theme={theme} onThemeChange={setTheme} themes={allThemes} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative', background: S.page.background, zIndex: 20 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative', background: S.page.background, zIndex: 20, overflow: 'hidden' }}>
           <Header S={S} />
-          <main style={{ ...S.main, height: 'auto', flex: 1 }}>
+          <main style={{ flex: 1, overflow: 'auto', boxSizing: 'border-box' }}>
             {content}
           </main>
         </div>

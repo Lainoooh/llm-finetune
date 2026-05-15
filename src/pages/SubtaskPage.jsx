@@ -154,8 +154,8 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
         </div>
       </div>
       {/* 滑动导航 - 拉通整个页面宽度 */}
-      <div style={{ margin: "8px -24px 0 -24px", padding: "4px 24px", background: S.page.background === "#0a0a0a" ? "#1a2332" : "#F0F7FF", borderTop: "1px solid", borderBottom: "1px solid", borderColor: S.page.background === "#0a0a0a" ? "#2a3a4a" : "#D1E3F8" }}>
-        <div style={{ display: "flex", gap: 4, position: "relative" }}>
+      <div style={{ margin: "8px -24px 0 -24px", padding: "0 24px", background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#F3F4F6", borderTop: "1px solid", borderBottom: "1px solid", borderColor: S.page.background === "#0a0a0a" ? "#2a3a4a" : "#E5E7EB" }}>
+        <div style={{ display: "flex", position: "relative" }}>
           {/* 滑动指示器 */}
           <div
             style={{
@@ -164,10 +164,8 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
               left: indicatorStyle.left,
               width: indicatorStyle.width,
               height: "100%",
-              background: "#004EA2",
-              borderRadius: 8,
+              background: S.page.background === "#0a0a0a" ? "#004EA2" : "#E0F2FE",
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              boxShadow: "0 2px 8px rgba(0, 78, 162, 0.3)",
               zIndex: 0,
             }}
           />
@@ -178,13 +176,13 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
               onClick={() => setTab(key)}
               style={{
                 border: 0,
-                borderRadius: 8,
-                padding: "8px 16px",
+                borderRadius: 0,
+                padding: "12px 20px",
                 cursor: "pointer",
                 fontWeight: 600,
                 fontSize: 14,
                 background: "transparent",
-                color: tab === key ? "#fff" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
+                color: tab === key ? "#004EA2" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
                 position: "relative",
                 zIndex: 1,
                 transition: "color 0.2s ease-out",
@@ -195,12 +193,9 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
           ))}
         </div>
       </div>
-      <div style={{ marginTop: 20, minHeight: 520 }}>
+      <div style={{ marginTop: 20 }}>
         {tab === "base" && (
           <div>
-            <div style={{ marginBottom: 16 }}>
-              <Button secondary onClick={saveConfig} S={S}>保存配置</Button>
-            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
               <Field label="微调训练任务模型名" value="customer_service_v1" onChange={() => {}} S={S} />
               <Field label="子任务名称" value="rank32_lr5e-5" onChange={() => {}} S={S} />
@@ -222,6 +217,9 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
               <Info label="服务器 CUDA" value={selected.cuda} />
               <Info label="LLaMA-Factory" value={selected.llamafactory} />
               <Info label="磁盘空间" value={selected.disk} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+              <Button onClick={saveConfig} S={S}>保存配置</Button>
             </div>
           </div>
         )}

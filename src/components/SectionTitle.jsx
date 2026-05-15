@@ -1,6 +1,6 @@
-export function SectionTitle({ title, desc, actions, S }) {
+export function SectionTitle({ title, desc, actions, S, style }) {
   return (
-    <div style={{ ...S.row, marginBottom: 16 }}>
+    <div style={{ ...S.row, marginBottom: 16, ...style }}>
       <div>
         <div style={{ fontWeight: 800, color: S.page.color }}>{title}</div>
         {desc ? <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginTop: 4 }}>{desc}</div> : null}

@@ -4,7 +4,7 @@ import { Metric } from "./Metric";
 
 export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPalette }) {
   return (
-    <div style={{ marginTop: 20, overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
+    <div style={{ marginTop: 20, overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 6 }}>
       <table style={{ ...S.table, minWidth: 1000 }}>
         <thead>
           <tr>
@@ -60,7 +60,7 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
                       background: "transparent",
                       cursor: "pointer",
                       padding: 6,
-                      borderRadius: 6,
+                      borderRadius: 4,
                       color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
                       transition: "all 0.2s",
                     }}
@@ -86,7 +86,7 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
                       background: "transparent",
                       cursor: "pointer",
                       padding: 6,
-                      borderRadius: 6,
+                      borderRadius: 4,
                       color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
                       transition: "all 0.2s",
                     }}
@@ -112,7 +112,7 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
                       background: "transparent",
                       cursor: "pointer",
                       padding: 6,
-                      borderRadius: 6,
+                      borderRadius: 4,
                       color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
                       transition: "all 0.2s",
                     }}

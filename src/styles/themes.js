@@ -7,7 +7,7 @@ export const themes = {
     S: {
       page: { minHeight: "100vh", background: "#F8F9FA", color: "#1F2937", fontFamily: "Arial, sans-serif" },
       layout: { display: "flex" },
-      sidebar: { width: 260, height: "100vh", flexShrink: 0, background: "#FFFFFF", borderRight: "1px solid #E5E7EB", padding: 12, boxSizing: "border-box", display: "flex", flexDirection: "column" },
+      sidebar: { width: 260, height: "100vh", flexShrink: 0, background: "#FFFFFF", borderRight: "1px solid #E5E7EB", boxSizing: "border-box", display: "flex", flexDirection: "column" },
       brand: { color: "#1F2937", borderRadius: 12, padding: 16, marginBottom: 12 },
       navBtn: { width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: 12, padding: "10px 16px", marginBottom: 4, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s", background: "transparent", color: "#6B7280" },
       navBtnActive: { background: "#F0F7FF", color: "#004EA2", border: "1px solid #CCE4FF", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" },
@@ -40,7 +40,7 @@ export const themes = {
     S: {
       page: { minHeight: "100vh", background: "#0a0a0a", color: "#e0e0e0", fontFamily: "Arial, sans-serif" },
       layout: { display: "flex" },
-      sidebar: { width: 260, height: "100vh", flexShrink: 0, background: "#1a1a1a", borderRight: "1px solid #2a2a2a", padding: 12, boxSizing: "border-box", display: "flex", flexDirection: "column" },
+      sidebar: { width: 260, height: "100vh", flexShrink: 0, background: "#1a1a1a", borderRight: "1px solid #2a2a2a", boxSizing: "border-box", display: "flex", flexDirection: "column" },
       brand: { background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "#fff", borderRadius: 12, padding: 16, marginBottom: 12 },
       navBtn: { width: "100%", textAlign: "left", border: "1px solid transparent", borderRadius: 12, padding: "10px 16px", marginBottom: 4, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "all 0.2s", background: "transparent", color: "#9ca3af" },
       navBtnActive: { background: "#2a2a2a", color: "#8b5cf6", border: "1px solid #3a3a3a", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" },

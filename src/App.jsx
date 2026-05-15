@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTheme, statusText } from "./styles/themes";
 import { Sidebar } from "./layouts/Sidebar";
+import { Header } from "./layouts/Header";
 import { Dashboard } from "./pages/Dashboard";
 import { ServersPage } from "./pages/ServersPage";
 import { TaskListPage } from "./pages/TaskListPage";
@@ -73,9 +74,12 @@ export default function App() {
     <div style={S.page}>
       <div style={S.layout}>
         <Sidebar page={page} setPage={handleSetPage} S={S} theme={theme} onThemeChange={setTheme} themes={allThemes} />
-        <main style={S.main}>
-          {content}
-        </main>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative', background: S.page.background, zIndex: 20 }}>
+          <Header S={S} />
+          <main style={{ ...S.main, height: 'auto', flex: 1 }}>
+            {content}
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
     <aside style={S.sidebar}>
       {/* Logo区域 - 照抄参考项目 */}
       <div style={{
-        height: 72,
+        height: 56,
         display: 'flex',
         alignItems: 'center',
         gap: 10,
@@ -33,7 +33,7 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
             letterSpacing: '0.5px',
             lineHeight: 1.2,
             whiteSpace: 'nowrap'
-          }}>模型微调平台</span>
+          }}>垂域模型微调平台</span>
         </div>
       </div>
 

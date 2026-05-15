@@ -18,12 +18,12 @@ export function Breadcrumb({ page, setPage, task, S }) {
   return (
     <div style={{
       padding: 0,
-      marginBottom: 10,
+      marginBottom: 8,
       borderBottom: "1px solid",
       borderColor: isLight ? "#E5E7EB" : "#2a2a2a",
-      paddingBottom: 10,
+      paddingBottom: 8,
       display: "flex",
-      gap: 8,
+      gap: 4,
       alignItems: "center",
       fontSize: 13,
     }}>
@@ -38,7 +38,7 @@ export function Breadcrumb({ page, setPage, task, S }) {
             style={{
               border: 0,
               borderRadius: 4,
-              padding: "2px 6px",
+              padding: i === 0 ? "2px 6px 2px 0" : "2px 6px",
               background: "transparent",
               color: i === items.length - 1
                 ? (isLight ? "#004EA2" : "#a78bfa")

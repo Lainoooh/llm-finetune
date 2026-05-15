@@ -8,23 +8,23 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
       <table style={{ ...S.table, minWidth: 1000 }}>
         <thead>
           <tr>
-            <th style={{ ...S.th, width: "14%" }}>子任务</th>
-            <th style={{ ...S.th, width: "7%" }}>状态</th>
-            <th style={{ ...S.th, width: "13%" }}>服务器</th>
-            <th style={{ ...S.th, width: "7%" }}>GPU</th>
-            <th style={{ ...S.th, width: "28%" }}>训练参数</th>
-            <th style={{ ...S.th, width: "17%" }}>训练/评测结果</th>
-            <th style={{ ...S.th, width: "10%" }}>操作</th>
+            <th style={S.th}>子任务</th>
+            <th style={S.th}>状态</th>
+            <th style={S.th}>服务器</th>
+            <th style={S.th}>GPU</th>
+            <th style={S.th}>训练参数</th>
+            <th style={S.th}>训练/评测结果</th>
+            <th style={S.th}>操作</th>
           </tr>
         </thead>
         <tbody>
           {subtasks.map((s) => (
             <tr key={s.id}>
               <td style={S.td}>
-                <button onClick={onConfig} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, whiteSpace: "nowrap", display: "block" }}>
+                <button onClick={onConfig} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, whiteSpace: "nowrap", display: "block", padding: 0, textAlign: "left" }}>
                   {s.id}
                 </button>
-                <button onClick={onConfig} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", display: "block", marginTop: 2 }}>
+                <button onClick={onConfig} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", display: "block", marginTop: 2, padding: 0, textAlign: "left" }}>
                   {s.name}
                 </button>
               </td>

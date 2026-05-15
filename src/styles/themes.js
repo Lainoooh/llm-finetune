@@ -22,7 +22,7 @@ export const themes = {
       btnSecondaryHover: { background: "#374151" },
       table: { width: "100%", borderCollapse: "collapse", fontSize: 13 },
       th: { background: "#F9FAFB", color: "#6B7280", textTransform: "uppercase", fontSize: 11, textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #E5E7EB", fontWeight: 700 },
-      td: { padding: "10px 8px", borderBottom: "1px solid #E5E7EB", verticalAlign: "middle", color: "#1F2937" },
+      td: { padding: "10px 8px", borderBottom: "1px solid #E5E7EB", verticalAlign: "middle", color: "#1F2937", textAlign: "left" },
       input: { width: "100%", boxSizing: "border-box", border: "1px solid #D1D5DB", borderRadius: 12, padding: "10px 12px", fontSize: 13, transition: "all 0.2s" },
     },
     statusPalette: {
@@ -55,7 +55,7 @@ export const themes = {
       btnSecondaryHover: { background: "#4b5563" },
       table: { width: "100%", borderCollapse: "collapse", fontSize: 13 },
       th: { background: "#252525", color: "#999999", textTransform: "uppercase", fontSize: 11, textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #2a2a2a", fontWeight: 600 },
-      td: { padding: "10px 8px", borderBottom: "1px solid #252525", verticalAlign: "middle", color: "#e0e0e0" },
+      td: { padding: "10px 8px", borderBottom: "1px solid #252525", verticalAlign: "middle", color: "#e0e0e0", textAlign: "left" },
       input: { width: "100%", boxSizing: "border-box", border: "1px solid #3a3a3a", borderRadius: 12, padding: "10px 12px", fontSize: 13, background: "#252525", color: "#e0e0e0", transition: "border 0.2s" },
     },
     statusPalette: {

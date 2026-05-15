@@ -76,7 +76,7 @@ export default function App() {
         <Sidebar page={page} setPage={handleSetPage} S={S} theme={theme} onThemeChange={setTheme} themes={allThemes} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative', background: S.page.background, zIndex: 20, overflow: 'hidden' }}>
           <Header S={S} />
-          <main style={{ flex: 1, overflow: 'auto', boxSizing: 'border-box' }}>
+          <main style={{ flex: 1, overflow: 'auto', boxSizing: 'border-box', padding: '10px' }}>
             {content}
           </main>
         </div>

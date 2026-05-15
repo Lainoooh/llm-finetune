@@ -14,14 +14,6 @@ export function Header({ S }) {
       top: 0,
       boxShadow: S.page.background === "#F8F9FA" ? "0 1px 2px rgba(0,0,0,0.05)" : "0 1px 2px rgba(0,0,0,0.3)"
     }}>
-      <div style={{
-        fontSize: 16,
-        fontWeight: 700,
-        color: S.page.color,
-        letterSpacing: '0.3px'
-      }}>
-        模型微调管理
-      </div>
     </div>
   );
 }

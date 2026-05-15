@@ -91,7 +91,7 @@ export function TaskListPage({ task, setPage, S, statusPalette }) {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td style={S.td}>
-                  <button onClick={() => setPage("taskDetail")} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color }}>
+                  <button onClick={() => setPage("taskDetail")} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, display: "block", padding: 0, textAlign: "left" }}>
                     {r.name}
                   </button>
                   <div style={{ color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8", fontSize: 12 }}>{r.id}</div>

@@ -7,7 +7,7 @@ import { Field } from "../components/Field";
 import { Info } from "../components/Info";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import Spinner from "../components/Spinner";
-import { SearchBar } from "../components/SearchBar";
+import { FilterBar } from "../components/FilterBar";
 import { Pagination } from "../components/Pagination";
 import { statusText } from "../styles/themes";
 
@@ -21,18 +21,20 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   const [testingServers, setTestingServers] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const pageSize = 10;
   const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
   const isNew = !selectedId;
 
-  // 搜索过滤
+  // 搜索和筛选
   const filteredServers = servers.filter(server => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       server.name.toLowerCase().includes(searchLower) ||
-      server.host.toLowerCase().includes(searchLower) ||
-      (server.gpu && server.gpu.toLowerCase().includes(searchLower))
+      server.host.toLowerCase().includes(searchLower)
     );
+    const matchesStatus = statusFilter === "all" || server.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   // 分页计算
@@ -45,6 +47,19 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
+  };
+
+  // 状态筛选处理
+  const handleStatusFilter = (status) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
+
+  // 统计各状态数量
+  const statusCounts = {
+    all: servers.length,
+    online: servers.filter(s => s.status === "online").length,
+    offline: servers.filter(s => s.status === "offline").length,
   };
 
   const availableTools = ["LLaMA-Factory"]; // 当前支持的微调工具列表
@@ -183,34 +198,185 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Card style={{ flex: 1, display: 'flex', flexDirection: 'column' }} S={S}>
-        {/* 第一行：标题和按钮 */}
-        <div>
-          <SectionTitle
-            title="服务器列表"
-            desc={`共 ${filteredServers.length} 台服务器${searchTerm ? ` (搜索结果)` : ''}`}
-            actions={
-              <div style={{ display: "flex", gap: 8 }}>
-                <Button secondary onClick={batchTestConnection} S={S}>连通性检查</Button>
-                <Button onClick={openNew} S={S}>新增服务器</Button>
-              </div>
-            }
-            S={S}
-          />
-        </div>
+        {/* 标题行 */}
+        <SectionTitle
+          title="服务器列表"
+          desc={`共 ${filteredServers.length} 台服务器${searchTerm ? ` (搜索结果)` : ''}`}
+          actions={
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button secondary onClick={batchTestConnection} S={S}>连通性检查</Button>
+              <Button onClick={openNew} S={S}>新增服务器</Button>
+            </div>
+          }
+          S={S}
+          style={{ marginBottom: 8 }}
+        />
 
-        {/* 第二行：搜索框（独立） */}
-        <div style={{ marginTop: 16, marginBottom: 16 }}>
-          <SearchBar
-            value={searchTerm}
-            onChange={handleSearch}
-            placeholder="搜索服务器名称、地址、GPU..."
-            S={S}
-          />
+        {/* 筛选行：状态标签（左） + 搜索框（右） */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 12,
+        }}>
+          {/* 左侧：状态筛选 */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[
+              { key: 'all', label: '全部', count: statusCounts.all },
+              { key: 'online', label: '在线', count: statusCounts.online },
+              { key: 'offline', label: '离线', count: statusCounts.offline },
+            ].map(({ key, label, count }) => {
+              const isActive = statusFilter === key;
+              const activeColor = S.page.background === "#0a0a0a" ? "#8b5cf6" : "#004EA2";
+              const activeBg = S.page.background === "#0a0a0a" ? "#8b5cf615" : "#F0F7FF";
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleStatusFilter(key)}
+                  style={{
+                    padding: '7px 14px',
+                    border: isActive
+                      ? `2px solid ${activeColor}`
+                      : `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
+                    borderRadius: 8,
+                    background: isActive
+                      ? activeBg
+                      : (S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff"),
+                    color: isActive ? activeColor : S.page.color,
+                    fontSize: 13,
+                    fontWeight: isActive ? 600 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    fontFamily: 'inherit',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#4b5563" : "#cbd5e1";
+                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#111827" : "#f8fafc";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0";
+                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff";
+                    }
+                  }}
+                >
+                  {label}
+                  {count !== undefined && (
+                    <span style={{
+                      padding: '2px 7px',
+                      borderRadius: 5,
+                      background: isActive
+                        ? activeColor
+                        : (S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb"),
+                      color: isActive
+                        ? '#fff'
+                        : (S.page.background === "#0a0a0a" ? "#d1d5db" : "#6b7280"),
+                      fontSize: 11,
+                      fontWeight: 700,
+                      minWidth: 20,
+                      textAlign: 'center',
+                    }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 右侧：搜索框 */}
+          <div style={{ position: 'relative', width: 280 }}>
+            <div style={{
+              position: 'absolute',
+              left: 14,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+              color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8",
+              display: 'flex',
+              alignItems: 'center',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={handleSearch}
+              placeholder="搜索服务器名称、地址..."
+              style={{
+                width: '100%',
+                fontSize: 14,
+                padding: '10px 44px 10px 44px',
+                border: `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
+                borderRadius: 4,
+                background: S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff",
+                color: S.page.color,
+                outline: 'none',
+                transition: 'all 0.2s',
+                fontFamily: 'inherit',
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.background = S.page.background === "#0a0a0a" ? "#111827" : "#f9fafb";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0";
+                e.target.style.background = S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff";
+              }}
+            />
+
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setCurrentPage(1);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  border: 0,
+                  background: S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb",
+                  cursor: 'pointer',
+                  padding: 6,
+                  borderRadius: 4,
+                  color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6b7280",
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#4b5563" : "#d1d5db";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb";
+                }}
+                title="清除搜索"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 可滚动区域：表格 */}
         <div style={{ flex: 1, overflow: 'auto' }}>
-          <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 16 }}>
+          <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 6 }}>
             <table style={S.table}>
             <thead>
               <tr>

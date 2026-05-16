@@ -156,7 +156,7 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
       {/* 滑动导航 - 拉通整个页面宽度 */}
       <div style={{ margin: "8px -24px 0 -24px", padding: "0 24px", background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#F3F4F6", borderTop: "1px solid", borderBottom: "1px solid", borderColor: S.page.background === "#0a0a0a" ? "#2a3a4a" : "#E5E7EB" }}>
         <div style={{ display: "flex", position: "relative" }}>
-          {/* 滑动指示器 */}
+          {/* 滑动指示器 - 背景 */}
           <div
             style={{
               position: "absolute",
@@ -167,6 +167,19 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
               background: S.page.background === "#0a0a0a" ? "#004EA2" : "#E0F2FE",
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               zIndex: 0,
+            }}
+          />
+          {/* 顶部蓝色横线 */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: indicatorStyle.left,
+              width: indicatorStyle.width,
+              height: 3,
+              background: "#004EA2",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              zIndex: 2,
             }}
           />
           {tabs.map(([key, label]) => (
@@ -196,9 +209,8 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
       <div style={{ marginTop: 20 }}>
         {tab === "base" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-              <Field label="微调训练任务模型名" value="customer_service_v1" onChange={() => {}} S={S} />
-              <Field label="子任务名称" value="rank32_lr5e-5" onChange={() => {}} S={S} />
+            {/* 服务器配置卡片 */}
+            <div style={{ background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#FFFFFF", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 12, padding: 16, marginBottom: 12 }}>
               <label>
                 <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>远程服务器</div>
                 <select value={serverId} onChange={(e) => setServerId(e.target.value)} style={S.input}>
@@ -209,16 +221,82 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
                   ))}
                 </select>
               </label>
-              <Field label="GPU" value="2,3,4,5" onChange={() => {}} S={S} />
-              <Field label="基模路径" value="/models/Qwen/Qwen3-8B" onChange={() => {}} S={S} />
-              <Field label="统一输出目录" value={`${selected.workDir}/outputs/customer_service_v1/task_002`} onChange={() => {}} S={S} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280" }}>
+                <span>连接: {selected.host}</span>
+                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
+                <span>显卡: {selected.gpu.replace(/NVIDIA\s*/g, '').replace(/\s*×\s*/g, '×')}</span>
+                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>状态: <Badge status={selected.status} statusPalette={statusPalette} /></span>
+                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
+                <span>GPU: {selected.gpuIds}</span>
+                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
+                <span>CUDA: {selected.cuda}</span>
+                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
+                <span>工具: {selected.finetuneToolName} {selected.finetuneTools["LLaMA-Factory"]}</span>
+                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
+                {(() => {
+                  const match = selected.disk.match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/);
+                  if (!match) return <span>磁盘: {selected.disk}</span>;
+                  const used = parseFloat(match[1]);
+                  const total = parseFloat(match[2]);
+                  const percent = Math.round((used / total) * 100);
+                  const color = percent > 80 ? "#ef4444" : percent > 60 ? "#f59e0b" : "#10b981";
+                  return (
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span>磁盘: {selected.disk} ({percent}%)</span>
+                      <div style={{ width: 60, height: 6, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: `${percent}%`, height: "100%", background: color, transition: "width 0.3s" }} />
+                      </div>
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16, marginTop: 16 }}>
-              <Info label="服务器 CUDA" value={selected.cuda} />
-              <Info label="LLaMA-Factory" value={selected.llamafactory} />
-              <Info label="磁盘空间" value={selected.disk} />
+
+            {/* 训练配置卡片 */}
+            <div style={{ background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#FFFFFF", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 12, padding: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 12, marginBottom: 12 }}>
+                <Field label="子任务名称" value="rank32_lr5e-5" onChange={() => {}} S={S} />
+                <Field label="GPU" value="2,3,4,5" onChange={() => {}} S={S} />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <Field label="基模路径" value="/models/Qwen/Qwen3-8B" onChange={() => {}} S={S} />
+              </div>
+              <div>
+                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>输出目录</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  <input
+                    type="text"
+                    value={`${selected.workDir}/outputs/customer_service_v1/`}
+                    disabled
+                    style={{
+                      ...S.input,
+                      flex: 1,
+                      borderTopRightRadius: 0,
+                      borderBottomRightRadius: 0,
+                      background: S.page.background === "#0a0a0a" ? "#0f0f0f" : "#F3F4F6",
+                      color: S.page.background === "#0a0a0a" ? "#6b7280" : "#9ca3af",
+                      cursor: "not-allowed",
+                      borderRight: 0
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value="task_002"
+                    onChange={() => {}}
+                    style={{
+                      ...S.input,
+                      width: 150,
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+
+            {/* 保存按钮 */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
               <Button onClick={saveConfig} S={S}>保存配置</Button>
             </div>
           </div>

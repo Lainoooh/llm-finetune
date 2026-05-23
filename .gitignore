@@ -5,3 +5,8 @@ dist/
 .env
 .env.local
 .vite
+backend/.venv/
+data/
+backend/data/
+__pycache__/
+.pytest_cache/

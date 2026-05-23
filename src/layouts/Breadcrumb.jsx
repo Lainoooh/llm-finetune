@@ -9,8 +9,8 @@ export function Breadcrumb({ page, setPage, task, S }) {
   if (page === "compare") items.push(["综合对比", "compare"]);
   if (["tasks", "taskDetail", "subtask"].includes(page)) {
     items.push(["微调训练任务", "tasks"]);
-    if (["taskDetail", "subtask"].includes(page)) items.push([task.name, "taskDetail"]);
-    if (page === "subtask") items.push(["task_002 配置", "subtask"]);
+    if (["taskDetail", "subtask"].includes(page)) items.push([task?.name || "任务详情", "taskDetail"]);
+    if (page === "subtask") items.push([task?.subtaskName || "子任务配置", "subtask"]);
   }
 
   const isLight = S.page.background === "#F8F9FA";

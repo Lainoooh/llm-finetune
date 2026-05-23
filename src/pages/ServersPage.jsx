@@ -7,15 +7,105 @@ import { Field } from "../components/Field";
 import { Info } from "../components/Info";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import Spinner from "../components/Spinner";
-import { FilterBar } from "../components/FilterBar";
 import { Pagination } from "../components/Pagination";
-import { statusText } from "../styles/themes";
+import { createServer, deleteServer as deleteServerApi, getProbeTask, probeDraftServer, probeServer, updateServer } from "../api/serversApi";
 
-export function ServersPage({ servers, setServers, S, statusPalette }) {
+function SegmentedOptions({ label, options, value, onChange, S }) {
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 500, color: S.page.color, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        {options.map((option) => {
+          const active = value === option.key;
+          return (
+            <button
+              key={option.key}
+              onClick={() => onChange(option.key)}
+              style={{
+                padding: "8px 16px",
+                border: active ? "1px solid #667eea" : `1px solid ${S.card.border.split(" ")[2]}`,
+                borderRadius: 8,
+                background: active ? (S.page.background === "#0a0a0a" ? "#667eea20" : "#667eea10") : "transparent",
+                color: active ? "#667eea" : S.page.color,
+                fontSize: 14,
+                fontWeight: active ? 600 : 400,
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function makeEmptyEnvInfo() {
+  return {
+    gpu: "",
+    accelerator: "",
+    cuda: "",
+    acceleratorRuntime: "",
+    torch: "",
+    aiFramework: "",
+    acceleratorIds: "",
+    acceleratorCount: 0,
+    acceleratorVendor: "",
+    finetuneTools: {},
+    finetuneEnv: "",
+    probeItems: {},
+    disk: "",
+    status: "",
+  };
+}
+
+function normalizeEnvInfo(server = {}) {
+  return {
+    gpu: server.gpu || "",
+    accelerator: server.accelerator || server.gpu || "",
+    cuda: server.cuda || "",
+    acceleratorRuntime: server.acceleratorRuntime || server.cuda || "",
+    torch: server.torch || "",
+    aiFramework: server.aiFramework || server.torch || "",
+    acceleratorIds: server.acceleratorIds || server.gpuIds || "",
+    acceleratorCount: Number(server.acceleratorCount || 0),
+    acceleratorVendor: server.acceleratorVendor || "",
+    finetuneTools: server.finetuneTools || {},
+    finetuneEnv: server.finetuneEnv || "",
+    probeItems: {},
+    disk: server.disk || "",
+    status: server.status || "",
+  };
+}
+
+function splitDeviceIds(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatGpuCount(ids, fallbackCount = 0) {
+  const items = splitDeviceIds(ids);
+  if (items.length) return `${items.length} 个（${items.join(",")}）`;
+  if (fallbackCount) return `${fallbackCount} 个`;
+  return "-";
+}
+
+function getConnectionAddress(server) {
+  if (server.accessType === "jupyter") return server.jupyterBaseUrl || server.host || "-";
+  return server.host || "-";
+}
+
+export function ServersPage({ servers, setServers, reloadServers, S, statusPalette }) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [draft, setDraft] = useState({ name: "", user: "", password: "", host: "", workDir: "", gpuIds: "", finetuneToolName: "LLaMA-Factory" });
-  const [envInfo, setEnvInfo] = useState({ gpu: "", cuda: "", torch: "", finetuneTools: {}, disk: "", status: "" });
+  const defaultDraft = { name: "", accessType: "jupyter", user: "", password: "", host: "", sshPort: 22, sshKey: "", jupyterBaseUrl: "", token: "", workDir: "", gpuIds: "", finetuneToolName: "LLaMA-Factory", finetuneToolContainerName: "" };
+  const [draft, setDraft] = useState(defaultDraft);
+  const [envInfo, setEnvInfo] = useState(makeEmptyEnvInfo());
+  const [secretVisible, setSecretVisible] = useState({ token: false, password: false });
   const [testing, setTesting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, server: null });
   const [testingServers, setTestingServers] = useState(new Set());
@@ -30,8 +120,8 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
   const filteredServers = servers.filter(server => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = (
-      server.name.toLowerCase().includes(searchLower) ||
-      server.host.toLowerCase().includes(searchLower)
+      String(server.name || "").toLowerCase().includes(searchLower) ||
+      getConnectionAddress(server).toLowerCase().includes(searchLower)
     );
     const matchesStatus = statusFilter === "all" || server.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -62,12 +152,17 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
     offline: servers.filter(s => s.status === "offline").length,
   };
 
-  const availableTools = ["LLaMA-Factory"]; // 当前支持的微调工具列表
+  const availableTools = ["LLaMA-Factory"];
+  const accessTypes = [
+    { key: "jupyter", label: "Jupyter" },
+    { key: "ssh", label: "SSH" },
+  ];
 
   function openNew() {
     setSelectedId(null);
-    setDraft({ name: "", user: "", password: "", host: "", workDir: "", gpuIds: "", finetuneToolName: "LLaMA-Factory" });
-    setEnvInfo({ gpu: "", cuda: "", torch: "", finetuneTools: {}, disk: "", status: "" });
+    setDraft(defaultDraft);
+    setEnvInfo(makeEmptyEnvInfo());
+    setSecretVisible({ token: false, password: false });
     setOpen(true);
   }
 
@@ -77,31 +172,43 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
     setSelectedId(server.id);
     setDraft({
       name: server.name,
+      accessType: server.accessType || "jupyter",
       user: server.user,
       password: server.password,
       host: server.host,
+      sshPort: server.sshPort || 22,
+      sshKey: server.sshKey || "",
+      jupyterBaseUrl: server.jupyterBaseUrl || "",
+      token: server.token || "",
       workDir: server.workDir,
       gpuIds: server.gpuIds || "",
-      finetuneToolName: server.finetuneToolName || "LLaMA-Factory"
+      finetuneToolName: server.finetuneToolName || "LLaMA-Factory",
+      finetuneToolContainerName: server.finetuneToolContainerName || ""
     });
-    setEnvInfo({ gpu: server.gpu, cuda: server.cuda, torch: server.torch, finetuneTools: server.finetuneTools || {}, disk: server.disk, status: server.status });
+    setEnvInfo(normalizeEnvInfo(server));
+    setSecretVisible({ token: false, password: false });
     setOpen(true);
   }
 
-  function saveServer() {
-    if (isNew) {
-      // 新增服务器
-      const newServer = {
-        id: `srv-${Date.now()}`,
-        ...draft,
-        ...envInfo,
-      };
-      setServers((list) => [...list, newServer]);
-    } else {
-      // 编辑服务器
-      setServers((list) => list.map((s) => (s.id === selectedId ? { ...s, ...draft, ...envInfo } : s)));
+  async function saveServer() {
+    const validation = validateDraft();
+    if (validation) {
+      alert(validation);
+      return;
     }
-    setOpen(false);
+    try {
+      if (isNew) {
+        const created = await createServer(draft);
+        setServers((list) => [...list, created]);
+      } else {
+        const updated = await updateServer(selectedId, draft);
+        setServers((list) => list.map((s) => (s.id === selectedId ? updated : s)));
+      }
+      setOpen(false);
+      await reloadServers?.();
+    } catch (error) {
+      alert(`保存服务器失败：${error.message}`);
+    }
   }
 
   function deleteServer(id) {
@@ -109,90 +216,155 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
     setDeleteConfirm({ open: true, server });
   }
 
-  function confirmDelete() {
-    setServers((list) => list.filter((s) => s.id !== deleteConfirm.server.id));
-    setDeleteConfirm({ open: false, server: null });
+  async function confirmDelete() {
+    try {
+      await deleteServerApi(deleteConfirm.server.id);
+      setServers((list) => list.filter((s) => s.id !== deleteConfirm.server.id));
+      setDeleteConfirm({ open: false, server: null });
+    } catch (error) {
+      alert(`删除服务器失败：${error.message}`);
+    }
   }
 
-  function testConnection() {
+  async function testConnection() {
+    const validation = validateDraft();
+    if (validation) {
+      alert(validation);
+      return;
+    }
     setTesting(true);
-    // 模拟连通性测试，30秒超时
-    const timer = setTimeout(() => {
-      // 模拟成功/失败（这里随机模拟，实际应该是真实的连接测试）
-      const success = Math.random() > 0.3; // 70% 成功率
-      if (success) {
-        setEnvInfo({
-          gpu: "4 × NVIDIA A100 80GB",
-          cuda: "12.1",
-          torch: "2.4.0+cu121",
-          finetuneTools: {
-            [draft.finetuneToolName]: "0.9.2.dev0"
-          },
-          disk: "3.8TB / 7.0TB",
-          status: "online",
-        });
-      } else {
-        // 失败时设置为断线状态
-        setEnvInfo({
-          gpu: "-",
-          cuda: "-",
-          torch: "-",
-          finetuneTools: {},
-          disk: "-",
-          status: "offline",
-        });
-      }
+    try {
+      const task = await probeDraftServer(draft);
+      await pollProbeTask(task.probeCode, (nextTask) => {
+        applyProbeTaskToModal(nextTask);
+      });
+    } catch (error) {
+      console.error("连通性测试失败:", error);
+      setEnvInfo({
+        gpu: "-",
+        accelerator: "-",
+        cuda: "-",
+        acceleratorRuntime: "-",
+        torch: "-",
+        aiFramework: "-",
+        acceleratorIds: draft.gpuIds,
+        acceleratorCount: splitDeviceIds(draft.gpuIds).length,
+        acceleratorVendor: "",
+        finetuneTools: {},
+        disk: "-",
+        status: "offline",
+      });
+      alert(`连通性测试失败：${error.message}`);
+    } finally {
       setTesting(false);
-    }, 30000); // 30秒超时
+    }
   }
 
-  function testServerConnection(serverId) {
+  async function testServerConnection(serverId) {
     setTestingServers(prev => new Set(prev).add(serverId));
-    // 模拟连通性测试，刷新所有环境信息
-    setTimeout(() => {
-      const success = Math.random() > 0.3; // 70% 成功率
+    try {
+      const task = await probeServer(serverId);
+      await pollProbeTask(task.probeCode, (nextTask) => {
+        if (nextTask.server) {
+          setServers(list => list.map(s => (s.id === serverId ? { ...s, ...nextTask.server } : s)));
+        }
+      });
+    } catch (error) {
+      console.error("服务器探测失败:", error);
       setServers(list => list.map(s => {
         if (s.id === serverId) {
-          if (success) {
-            // 成功：更新所有环境信息
-            return {
-              ...s,
-              gpu: "4 × NVIDIA A100 80GB",
-              cuda: "12.1",
-              torch: "2.4.0+cu121",
-              finetuneTools: {
-                [s.finetuneToolName || "LLaMA-Factory"]: "0.9.2.dev0"
-              },
-              disk: "3.8TB / 7.0TB",
-              status: "online",
-            };
-          } else {
-            // 失败：设置为离线状态，清空环境信息
-            return {
-              ...s,
-              gpu: "-",
-              cuda: "-",
-              torch: "-",
-              finetuneTools: {},
-              disk: "-",
-              status: "offline",
-            };
-          }
+          return {
+            ...s,
+            gpu: "-",
+            cuda: "-",
+            torch: "-",
+            finetuneTools: {},
+            disk: "-",
+            status: "offline",
+            lastError: error.message,
+          };
         }
         return s;
       }));
+      alert(`服务器探测失败：${error.message}`);
+    } finally {
       setTestingServers(prev => {
         const next = new Set(prev);
         next.delete(serverId);
         return next;
       });
-    }, 2000);
+    }
   }
 
   function batchTestConnection() {
     currentServers.forEach(server => {
       testServerConnection(server.id);
     });
+  }
+
+  function validateDraft() {
+    if (!draft.name?.trim()) return "请填写服务器名称";
+    if (!draft.gpuIds?.trim()) return "请填写设备编号";
+    if (!draft.workDir?.trim()) return "请填写工作目录";
+    if (!draft.finetuneToolName?.trim()) return "请选择微调工具";
+    if (!draft.finetuneToolContainerName?.trim()) return "请填写微调工具容器名";
+    if (draft.accessType === "jupyter") {
+      if (!draft.jupyterBaseUrl?.trim()) return "请填写 Jupyter Base URL";
+      if (!draft.token?.trim()) return "请填写 Jupyter Token";
+      return "";
+    }
+    if (!draft.host?.trim()) return "请填写连接地址";
+    if (!draft.user?.trim() && !draft.host.includes("@")) return "请填写连接账号，或在连接地址中使用 user@host";
+    if (!draft.password?.trim() && !draft.sshKey?.trim()) return "请填写连接密码或 SSH Private Key";
+    return "";
+  }
+
+  async function pollProbeTask(probeCode, onUpdate) {
+    let latest = null;
+    for (let index = 0; index < 120; index += 1) {
+      latest = await getProbeTask(probeCode);
+      onUpdate?.(latest);
+      if (latest.status === "completed") return latest;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    throw new Error("探测任务超时，请稍后查看结果");
+  }
+
+  function applyProbeTaskToModal(task) {
+    const hardware = task.items?.hardware || {};
+    const finetuneEnv = task.items?.finetuneEnv || {};
+    setEnvInfo((current) => {
+      const next = { ...current, probeItems: task.items || {}, status: task.server?.status || current.status };
+      if (hardware.status === "succeeded") {
+        Object.assign(next, {
+          gpu: hardware.data?.gpu || next.gpu,
+          accelerator: hardware.data?.accelerator || hardware.data?.gpu || next.accelerator,
+          cuda: hardware.data?.acceleratorRuntime || next.cuda,
+          acceleratorRuntime: hardware.data?.acceleratorRuntime || next.acceleratorRuntime,
+          acceleratorIds: hardware.data?.acceleratorIds || next.acceleratorIds,
+          acceleratorCount: Number(hardware.data?.acceleratorCount || next.acceleratorCount || 0),
+          disk: hardware.data?.disk || next.disk,
+          diskUsed: hardware.data?.diskUsed ?? next.diskUsed,
+          diskTotal: hardware.data?.diskTotal ?? next.diskTotal,
+        });
+      }
+      if (finetuneEnv.status === "succeeded") {
+        Object.assign(next, {
+          torch: finetuneEnv.data?.torch || next.torch,
+          aiFramework: finetuneEnv.data?.aiFramework || next.aiFramework,
+          finetuneEnv: finetuneEnv.data?.finetuneEnv || next.finetuneEnv,
+          finetuneTools: finetuneEnv.data?.finetuneTools || next.finetuneTools,
+        });
+      }
+      return next;
+    });
+  }
+
+  function probeValue(itemType, fallback) {
+    const item = envInfo.probeItems?.[itemType];
+    if (!item || item.status === "queued" || item.status === "running") return testing ? <Spinner size="small" /> : fallback;
+    if (item.status === "failed") return <span style={{ color: "#ef4444" }}>{item.error || "探测失败"}</span>;
+    return fallback;
   }
 
   return (
@@ -382,10 +554,11 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
               <tr>
                 <th style={S.th}>服务器名称</th>
                 <th style={S.th}>连接地址</th>
-                <th style={S.th}>运行显卡</th>
+                <th style={S.th}>连接方式</th>
+                <th style={S.th}>设备编号</th>
                 <th style={S.th}>状态</th>
-                <th style={S.th}>GPU</th>
-                <th style={S.th}>CUDA</th>
+                <th style={S.th}>显卡</th>
+                <th style={S.th}>运行时</th>
                 <th style={S.th}>微调工具</th>
                 <th style={S.th}>磁盘</th>
                 <th style={S.th}>操作</th>
@@ -398,17 +571,18 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
                     <b>{s.name}</b>
                   </td>
                   <td style={S.td}>
-                    {s.host}
+                    {getConnectionAddress(s)}
                   </td>
+                  <td style={S.td}>{s.accessType === "ssh" ? "SSH" : "Jupyter"}</td>
                   <td style={S.td}>{s.gpuIds || "-"}</td>
                   <td style={S.td}>
                     {testingServers.has(s.id) ? <Spinner size="small" /> : <Badge status={s.status} statusPalette={statusPalette} />}
                   </td>
                   <td style={S.td}>
-                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.gpu?.replace(/NVIDIA\s*/g, '').replace(/\s*×\s*/g, '×') || "-")}
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.accelerator || s.gpu || "-")}
                   </td>
                   <td style={S.td}>
-                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.cuda || "-")}
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.acceleratorRuntime || s.cuda || "-")}
                   </td>
                   <td style={S.td}>
                     {testingServers.has(s.id) ? (
@@ -573,61 +747,84 @@ export function ServersPage({ servers, setServers, S, statusPalette }) {
               </div>
             </div>
 
-            <SectionTitle title="连接配置" S={S} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
+            <SectionTitle title="基础配置" S={S} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
               <Field label="服务器名称" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} S={S} />
-              <Field label="运行显卡" value={draft.gpuIds} onChange={(e) => setDraft({ ...draft, gpuIds: e.target.value })} placeholder="例如: 0,1,2,3" S={S} />
-              <Field label="连接账号" value={draft.user} onChange={(e) => setDraft({ ...draft, user: e.target.value })} S={S} />
-              <Field label="连接地址" value={draft.host} onChange={(e) => setDraft({ ...draft, host: e.target.value })} S={S} />
-              <Field label="连接密码" type="password" value={draft.password} onChange={(e) => setDraft({ ...draft, password: e.target.value })} S={S} />
+              <Field label="设备编号" value={draft.gpuIds} onChange={(e) => setDraft({ ...draft, gpuIds: e.target.value })} placeholder="例如: 0,1,2,3" S={S} />
               <Field label="工作目录" value={draft.workDir} onChange={(e) => setDraft({ ...draft, workDir: e.target.value })} S={S} />
             </div>
 
-            {/* 微调工具选择 */}
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: S.page.color, marginBottom: 8 }}>微调工具</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {availableTools.map((tool) => (
-                  <button
-                    key={tool}
-                    onClick={() => setDraft({ ...draft, finetuneToolName: tool })}
-                    style={{
-                      padding: "8px 16px",
-                      border: draft.finetuneToolName === tool ? "1px solid #667eea" : `1px solid ${S.card.border.split(" ")[2]}`,
-                      borderRadius: 8,
-                      background: draft.finetuneToolName === tool ? (S.page.background === "#0a0a0a" ? "#667eea20" : "#667eea10") : "transparent",
-                      color: draft.finetuneToolName === tool ? "#667eea" : S.page.color,
-                      fontSize: 14,
-                      fontWeight: draft.finetuneToolName === tool ? 600 : 400,
-                      cursor: "pointer",
-                      transition: "all 0.2s"
-                    }}
-                    onMouseEnter={(e) => {
-                      if (draft.finetuneToolName !== tool) {
-                        e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f1f5f9";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (draft.finetuneToolName !== tool) {
-                        e.currentTarget.style.background = "transparent";
-                      }
-                    }}
-                  >
-                    {tool}
-                  </button>
-                ))}
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 16 }}>
+              <SegmentedOptions
+                label="连接方式"
+                options={accessTypes}
+                value={draft.accessType}
+                onChange={(accessType) => setDraft({ ...draft, accessType })}
+                S={S}
+              />
+              <SegmentedOptions
+                label="微调工具"
+                options={availableTools.map((tool) => ({ key: tool, label: tool }))}
+                value={draft.finetuneToolName}
+                onChange={(finetuneToolName) => setDraft({ ...draft, finetuneToolName })}
+                S={S}
+              />
+              <Field label="微调工具容器名" value={draft.finetuneToolContainerName} onChange={(e) => setDraft({ ...draft, finetuneToolContainerName: e.target.value })} placeholder="例如: llamafactory" S={S} />
             </div>
+
+            {draft.accessType === "jupyter" ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, marginTop: 16 }}>
+                <Field label="Jupyter Base URL" value={draft.jupyterBaseUrl} onChange={(e) => setDraft({ ...draft, jupyterBaseUrl: e.target.value })} placeholder="例如: http://host:30009/jupyter" S={S} />
+                <Field
+                  label="Jupyter Token"
+                  value={draft.token}
+                  onChange={(e) => setDraft({ ...draft, token: e.target.value })}
+                  placeholder="不填则使用后端默认 token"
+                  revealable
+                  revealed={secretVisible.token}
+                  onToggleReveal={() => setSecretVisible((state) => ({ ...state, token: !state.token }))}
+                  S={S}
+                />
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16, marginTop: 16 }}>
+                  <Field label="连接账号" value={draft.user} onChange={(e) => setDraft({ ...draft, user: e.target.value })} S={S} />
+                  <Field label="连接地址" value={draft.host} onChange={(e) => setDraft({ ...draft, host: e.target.value })} S={S} />
+                  <Field
+                    label="连接密码"
+                    value={draft.password}
+                    onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+                    revealable
+                    revealed={secretVisible.password}
+                    onToggleReveal={() => setSecretVisible((state) => ({ ...state, password: !state.password }))}
+                    S={S}
+                  />
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  <label style={{ display: "block" }}>
+                    <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>SSH Private Key</div>
+                    <textarea
+                      value={draft.sshKey}
+                      onChange={(e) => setDraft({ ...draft, sshKey: e.target.value })}
+                      placeholder="可填私钥内容；留空则使用密码"
+                      style={{ ...S.input, minHeight: 86, fontFamily: "monospace" }}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
 
             <div style={{ borderTop: `1px solid ${S.card.border.split(" ")[2]}`, marginTop: 24, marginBottom: 24 }} />
             <SectionTitle title="环境信息" S={S} />
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-              <Info label="GPU" value={testing ? <Spinner size="small" /> : (envInfo.gpu || "-")} />
-              <Info label="CUDA" value={testing ? <Spinner size="small" /> : (envInfo.cuda || "-")} />
-              <Info label="PyTorch" value={testing ? <Spinner size="small" /> : (envInfo.torch || "-")} />
-              <Info label="微调工具版本" value={testing ? <Spinner size="small" /> : (envInfo.finetuneTools[draft.finetuneToolName] || "-")} />
-              <Info label="磁盘" value={testing ? <Spinner size="small" /> : (envInfo.disk || "-")} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
+              <Info label="显卡型号" value={probeValue("hardware", envInfo.accelerator || envInfo.gpu || "-")} />
+              <Info label="驱动版本" value={probeValue("hardware", envInfo.acceleratorRuntime || envInfo.cuda || "-")} />
+              <Info label="显卡数量/编号" value={probeValue("hardware", formatGpuCount(envInfo.acceleratorIds || draft.gpuIds, envInfo.acceleratorCount))} />
+              <Info label="微调环境" value={probeValue("finetuneEnv", envInfo.finetuneEnv || (envInfo.aiFramework || envInfo.torch ? `PyTorch ${envInfo.aiFramework || envInfo.torch}` : "-"))} />
+              <Info label="微调工具版本" value={probeValue("finetuneEnv", envInfo.finetuneTools[draft.finetuneToolName] || "-")} />
+              <Info label="磁盘" value={probeValue("hardware", envInfo.disk || "-")} />
               <Info label="状态" value={testing ? <Spinner size="small" /> : (envInfo.status ? <Badge status={envInfo.status} statusPalette={statusPalette} /> : "-")} />
             </div>
           </div>

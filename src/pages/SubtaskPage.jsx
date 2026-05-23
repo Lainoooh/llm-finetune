@@ -1,36 +1,33 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
-import { Metric } from "../components/Metric";
 import { Field } from "../components/Field";
 import { Info } from "../components/Info";
 import { SectionTitle } from "../components/SectionTitle";
 import { Breadcrumb } from "../layouts/Breadcrumb";
-import { logs, yamlText, evalYaml, datasetInfo, directoryLines } from "../data/mockData";
+import { evaluateSubtask, getRemoteFiles, getSubtaskLogs, startSubtask, stopSubtask, syncSubtask, updateSubtask } from "../api/tasksApi";
 
-export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
-  const [serverId, setServerId] = useState(servers[1].id);
+export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, statusPalette }) {
   const [tab, setTab] = useState("base");
+  const [draft, setDraft] = useState(subtask || {});
+  const [logs, setLogs] = useState([]);
+  const [directoryLines, setDirectoryLines] = useState([]);
+  const [busy, setBusy] = useState("");
   const [mode, setMode] = useState("visual");
-  const [yaml, setYaml] = useState(yamlText);
-  const [count, setCount] = useState(6);
-  const selected = servers.find((s) => s.id === serverId) || servers[0];
-
-  // 滑动指示器状态
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef({});
 
-  // 当前子任务（模拟数据，实际应该从路由或状态获取）
-  const currentSubtask = task.subtasks[1]; // task_002
+  useEffect(() => {
+    setDraft(subtask || {});
+  }, [subtask]);
 
-  // 统计信息
-  const success = task.subtasks.filter((s) => s.status === "succeeded").length;
-  const running = task.subtasks.filter((s) => s.status === "running").length;
-  const failed = task.subtasks.filter((s) => s.status === "failed").length;
-  const pending = task.subtasks.length - success - running - failed;
+  useEffect(() => {
+    if (!subtask) return;
+    getSubtaskLogs(subtask.subtaskCode || subtask.id).then((data) => setLogs(data.lines || [])).catch(() => setLogs(subtask.logs || []));
+    getRemoteFiles(subtask.subtaskCode || subtask.id).then((data) => setDirectoryLines(data.lines || [])).catch(() => setDirectoryLines(subtask.directoryLines || []));
+  }, [subtask]);
 
-  // 更新滑动指示器位置
   useEffect(() => {
     const currentTabElement = tabRefs.current[tab];
     if (currentTabElement) {
@@ -41,54 +38,47 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
     }
   }, [tab]);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCount((v) => Math.min(v + 1, logs.length)), 1200);
-    return () => clearInterval(timer);
-  }, []);
+  const selectedServer = useMemo(() => servers.find((item) => item.id === draft.serverId) || servers[0] || {}, [draft.serverId, servers]);
+  const subtaskCode = draft.subtaskCode || draft.id;
+  const subtasks = task.subtasks || [];
+  const success = subtasks.filter((s) => s.status === "succeeded").length;
+  const running = subtasks.filter((s) => s.status === "running").length;
+  const failed = subtasks.filter((s) => s.status === "failed").length;
+  const pending = subtasks.length - success - running - failed;
 
-  function stopTraining() {
-    console.log("停止训练");
-    alert("停止训练功能开发中...");
+  if (!subtask) {
+    return <Card S={S}>暂无子任务，请先在任务详情中新建子任务。</Card>;
   }
 
-  function startTraining() {
-    console.log("启动/重试训练");
-    alert("启动训练功能开发中...");
+  async function withBusy(label, action) {
+    setBusy(label);
+    try {
+      await action();
+      await refreshTask();
+    } catch (error) {
+      alert(`${label}失败：${error.message}`);
+    } finally {
+      setBusy("");
+    }
   }
 
-  function saveConfig() {
-    console.log("保存配置");
-    alert("配置已保存（模拟）");
-  }
-
-  function uploadFiles() {
-    console.log("上传训练/评测文件");
-    alert("上传文件功能开发中...");
-  }
-
-  function syncToRemote() {
-    console.log("同步到远程");
-    alert("同步到远程功能开发中...");
-  }
-
-  function refreshDirectory() {
-    console.log("刷新目录");
-    alert("刷新目录功能开发中...");
-  }
-
-  function downloadLogs() {
-    console.log("下载日志");
-    alert("下载日志功能开发中...");
-  }
-
-  function loadTest() {
-    console.log("加载测试");
-    alert("加载测试功能开发中...");
-  }
-
-  function executeEval() {
-    console.log("执行评测");
-    alert("执行评测功能开发中...");
+  async function saveConfig() {
+    await withBusy("保存配置", async () => {
+      const payload = {
+        name: draft.name,
+        serverId: draft.serverId,
+        gpu: draft.gpu,
+        learningRate: draft.learningRate,
+        epoch: Number(draft.epoch || 1),
+        batchSize: Number(draft.batchSize || 1),
+        step: Number(draft.step || 100),
+        outputDir: draft.outputDir,
+        trainYaml: draft.trainYaml,
+        evalYaml: draft.evalYaml,
+        datasetInfo: draft.datasetInfo,
+      };
+      await updateSubtask(subtaskCode, payload);
+    });
   }
 
   const tabs = [
@@ -102,7 +92,7 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
 
   return (
     <Card S={S}>
-      <Breadcrumb page="subtask" setPage={setPage} task={{ name: task.name }} S={S} />
+      <Breadcrumb page="subtask" setPage={setPage} task={{ ...task, subtaskName: `${subtaskCode} 配置` }} S={S} />
       <div style={{ borderBottom: "1px solid", borderColor: S.card.border.split(" ")[2], paddingBottom: 16, marginBottom: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div>
@@ -111,7 +101,7 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
               <Badge status={task.status} statusPalette={statusPalette} />
             </div>
             <div style={{ fontSize: 12, color: S.page.background === "#F8F9FA" ? "#9CA3AF" : "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              <span>{task.id}</span>
+              <span>{task.taskCode || task.id}</span>
               <span style={{ color: S.page.background === "#F8F9FA" ? "#D1D5DB" : "#4b5563" }}>|</span>
               <span>训练模型名：{task.modelName}</span>
               <span style={{ color: S.page.background === "#F8F9FA" ? "#D1D5DB" : "#4b5563" }}>|</span>
@@ -119,264 +109,147 @@ export function SubtaskPage({ task, servers, setPage, S, statusPalette }) {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <Button secondary onClick={() => setPage("taskDetail")} S={S}>
-              返回任务详情
-            </Button>
-            <Button secondary onClick={stopTraining} S={S}>停止训练</Button>
-            <Button onClick={startTraining} S={S}>启动 / 重试</Button>
+            <Button secondary onClick={() => setPage("taskDetail")} S={S}>返回任务详情</Button>
+            <Button secondary onClick={() => withBusy("停止训练", () => stopSubtask(subtaskCode))} disabled={!!busy} S={S}>停止训练</Button>
+            <Button onClick={() => withBusy("启动训练", () => startSubtask(subtaskCode))} disabled={!!busy} S={S}>{busy || "启动 / 重试"}</Button>
           </div>
         </div>
 
-        {/* 统计信息 */}
         <div style={{ display: "flex", gap: 16, fontSize: 13, alignItems: "center", marginTop: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981" }}></div>
+            <div style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981" }} />
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>成功: {success}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: "#004EA2" }}></div>
+            <div style={{ width: 10, height: 10, borderRadius: 2, background: "#004EA2" }} />
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>运行中: {running}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: "#ef4444" }}></div>
+            <div style={{ width: 10, height: 10, borderRadius: 2, background: "#ef4444" }} />
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>失败: {failed}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>待处理: {pending}</span>
           </div>
-          <div style={{ fontWeight: 600, color: S.page.color }}>总计: {task.subtasks.length}</div>
-
-          {/* 当前子任务状态 */}
+          <div style={{ fontWeight: 600, color: S.page.color }}>总计: {subtasks.length}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 16, paddingLeft: 16, borderLeft: "2px solid", borderColor: S.page.background === "#F8F9FA" ? "#E5E7EB" : "#374151" }}>
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>当前子任务状态:</span>
-            <Badge status={currentSubtask.status} statusPalette={statusPalette} />
+            <Badge status={draft.status} statusPalette={statusPalette} />
           </div>
         </div>
       </div>
-      {/* 滑动导航 - 拉通整个页面宽度 */}
+
       <div style={{ margin: "8px -24px 0 -24px", padding: "0 24px", background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#F3F4F6", borderTop: "1px solid", borderBottom: "1px solid", borderColor: S.page.background === "#0a0a0a" ? "#2a3a4a" : "#E5E7EB" }}>
         <div style={{ display: "flex", position: "relative" }}>
-          {/* 滑动指示器 - 背景 */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: indicatorStyle.left,
-              width: indicatorStyle.width,
-              height: "100%",
-              background: S.page.background === "#0a0a0a" ? "#004EA2" : "#E0F2FE",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              zIndex: 0,
-            }}
-          />
-          {/* 顶部蓝色横线 */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: indicatorStyle.left,
-              width: indicatorStyle.width,
-              height: 3,
-              background: "#004EA2",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              zIndex: 2,
-            }}
-          />
+          <div style={{ position: "absolute", top: 0, left: indicatorStyle.left, width: indicatorStyle.width, height: "100%", background: S.page.background === "#0a0a0a" ? "#004EA2" : "#E0F2FE", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", zIndex: 0 }} />
+          <div style={{ position: "absolute", top: 0, left: indicatorStyle.left, width: indicatorStyle.width, height: 3, background: "#004EA2", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", zIndex: 2 }} />
           {tabs.map(([key, label]) => (
             <button
               key={key}
               ref={(el) => (tabRefs.current[key] = el)}
               onClick={() => setTab(key)}
-              style={{
-                border: 0,
-                borderRadius: 0,
-                padding: "12px 20px",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 14,
-                background: "transparent",
-                color: tab === key ? "#004EA2" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"),
-                position: "relative",
-                zIndex: 1,
-                transition: "color 0.2s ease-out",
-              }}
+              style={{ border: 0, borderRadius: 0, padding: "12px 20px", cursor: "pointer", fontWeight: 600, fontSize: 14, background: "transparent", color: tab === key ? "#004EA2" : (S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b"), position: "relative", zIndex: 1, transition: "color 0.2s ease-out", fontFamily: "inherit" }}
             >
               {label}
             </button>
           ))}
         </div>
       </div>
+
       <div style={{ marginTop: 20 }}>
-        {tab === "base" && (
+        {tab === "base" ? (
           <div>
-            {/* 服务器配置卡片 */}
             <div style={{ background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#FFFFFF", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 12, padding: 16, marginBottom: 12 }}>
               <label>
-                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>远程服务器</div>
-                <select value={serverId} onChange={(e) => setServerId(e.target.value)} style={S.input}>
-                  {servers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280" }}>
-                <span>连接: {selected.host}</span>
+              <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>远程服务器</div>
+              <select value={draft.serverId || ""} onChange={(e) => setDraft({ ...draft, serverId: e.target.value })} style={S.input}>
+                {servers.map((server) => <option key={server.id} value={server.id}>{server.name}</option>)}
+              </select>
+            </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280", flexWrap: "wrap" }}>
+                <span>连接: {selectedServer.host || selectedServer.endpoint || "-"}</span>
                 <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
-                <span>显卡: {selected.gpu.replace(/NVIDIA\s*/g, '').replace(/\s*×\s*/g, '×')}</span>
+                <span>显卡: {String(selectedServer.gpu || "-").replace(/NVIDIA\s*/g, "").replace(/\s*×\s*/g, "×")}</span>
                 <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>状态: <Badge status={selected.status} statusPalette={statusPalette} /></span>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>状态: <Badge status={selectedServer.status || "draft"} statusPalette={statusPalette} /></span>
                 <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
-                <span>GPU: {selected.gpuIds}</span>
+                <span>GPU: {selectedServer.gpuIds || selectedServer.acceleratorIds || "-"}</span>
                 <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
-                <span>CUDA: {selected.cuda}</span>
+                <span>CUDA: {selectedServer.cuda || "-"}</span>
                 <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
-                <span>工具: {selected.finetuneToolName} {selected.finetuneTools["LLaMA-Factory"]}</span>
-                <span style={{ color: S.page.background === "#0a0a0a" ? "#3a3a3a" : "#D1D5DB" }}>|</span>
-                {(() => {
-                  const match = selected.disk.match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/);
-                  if (!match) return <span>磁盘: {selected.disk}</span>;
-                  const used = parseFloat(match[1]);
-                  const total = parseFloat(match[2]);
-                  const percent = Math.round((used / total) * 100);
-                  const color = percent > 80 ? "#ef4444" : percent > 60 ? "#f59e0b" : "#10b981";
-                  return (
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span>磁盘: {selected.disk} ({percent}%)</span>
-                      <div style={{ width: 60, height: 6, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
-                        <div style={{ width: `${percent}%`, height: "100%", background: color, transition: "width 0.3s" }} />
-                      </div>
-                    </span>
-                  );
-                })()}
+                <span>磁盘: {selectedServer.disk || "-"}</span>
               </div>
             </div>
 
-            {/* 训练配置卡片 */}
             <div style={{ background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#FFFFFF", border: "1px solid", borderColor: S.card.border.split(" ")[2], borderRadius: 12, padding: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 12, marginBottom: 12 }}>
-                <Field label="子任务名称" value="rank32_lr5e-5" onChange={() => {}} S={S} />
-                <Field label="GPU" value="2,3,4,5" onChange={() => {}} S={S} />
+              <Field label="子任务名称" value={draft.name || ""} onChange={(e) => setDraft({ ...draft, name: e.target.value })} S={S} />
+              <Field label="GPU" value={draft.gpu || ""} onChange={(e) => setDraft({ ...draft, gpu: e.target.value })} S={S} />
               </div>
               <div style={{ marginBottom: 12 }}>
-                <Field label="基模路径" value="/models/Qwen/Qwen3-8B" onChange={() => {}} S={S} />
+                <Field label="基模路径" value={task.baseModel || "-"} onChange={() => {}} S={S} />
               </div>
-              <div>
-                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>输出目录</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                  <input
-                    type="text"
-                    value={`${selected.workDir}/outputs/customer_service_v1/`}
-                    disabled
-                    style={{
-                      ...S.input,
-                      flex: 1,
-                      borderTopRightRadius: 0,
-                      borderBottomRightRadius: 0,
-                      background: S.page.background === "#0a0a0a" ? "#0f0f0f" : "#F3F4F6",
-                      color: S.page.background === "#0a0a0a" ? "#6b7280" : "#9ca3af",
-                      cursor: "not-allowed",
-                      borderRight: 0
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value="task_002"
-                    onChange={() => {}}
-                    style={{
-                      ...S.input,
-                      width: 150,
-                      borderTopLeftRadius: 0,
-                      borderBottomLeftRadius: 0
-                    }}
-                  />
-                </div>
-              </div>
+              <Field label="输出目录" value={draft.outputDir || ""} onChange={(e) => setDraft({ ...draft, outputDir: e.target.value })} S={S} />
             </div>
 
-            {/* 保存按钮 */}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-              <Button onClick={saveConfig} S={S}>保存配置</Button>
+              <Button onClick={saveConfig} disabled={!!busy} S={S}>{busy === "保存配置" ? "保存中..." : "保存配置"}</Button>
             </div>
           </div>
-        )}
-        {tab === "dataset" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-              <Button secondary onClick={uploadFiles} S={S}>上传训练/评测文件</Button>
-              <Button onClick={syncToRemote} S={S}>同步到远程</Button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-              <Field label="训练集" value="qa_sft_train_202605" onChange={() => {}} S={S} />
-              <Field label="评测集" value="qa_sft_eval_202605" onChange={() => {}} S={S} />
-            </div>
-            <pre style={{ marginTop: 16, padding: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, overflow: "auto", color: S.page.color }}>{datasetInfo}</pre>
+        ) : null}
+
+        {tab === "dataset" ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <SectionTitle title="数据集配置" actions={<Button onClick={saveConfig} disabled={!!busy} S={S}>保存数据集</Button>} S={S} />
+            <textarea value={draft.datasetInfo || "{}"} onChange={(e) => setDraft({ ...draft, datasetInfo: e.target.value })} style={{ ...S.input, minHeight: 220, fontFamily: "monospace" }} />
           </div>
-        )}
-        {tab === "params" && (
-          <div>
+        ) : null}
+
+        {tab === "params" ? (
+          <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-              <Button secondary onClick={() => setMode("visual")} S={S}>
-                可视化
-              </Button>
-              <Button secondary onClick={() => setMode("yaml")} S={S}>
-                YAML
-              </Button>
+              <Button secondary onClick={() => setMode("visual")} S={S}>可视化</Button>
+              <Button secondary onClick={() => setMode("yaml")} S={S}>YAML</Button>
+              <Button onClick={saveConfig} disabled={!!busy} S={S}>保存参数</Button>
             </div>
             {mode === "visual" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}>
-                <Field label="训练阶段" value="sft" onChange={() => {}} S={S} />
-                <Field label="微调方式" value="lora" onChange={() => {}} S={S} />
-                <Field label="LR" value="5e-5" onChange={() => {}} S={S} />
-                <Field label="epoch" value="3" onChange={() => {}} S={S} />
-                <Field label="batch_size" value="2" onChange={() => {}} S={S} />
-                <Field label="step" value="500" onChange={() => {}} S={S} />
-                <Field label="cutoff_len" value="4096" onChange={() => {}} S={S} />
-                <Field label="bf16" value="true" onChange={() => {}} S={S} />
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}>
+              <Field label="训练阶段" value={draft.stage || "sft"} onChange={(e) => setDraft({ ...draft, stage: e.target.value })} S={S} />
+              <Field label="微调方式" value={draft.finetuneType || "lora"} onChange={(e) => setDraft({ ...draft, finetuneType: e.target.value })} S={S} />
+              <Field label="学习率" value={draft.learningRate || ""} onChange={(e) => setDraft({ ...draft, learningRate: e.target.value })} S={S} />
+              <Field label="Epoch" value={draft.epoch || ""} onChange={(e) => setDraft({ ...draft, epoch: e.target.value })} S={S} />
+              <Field label="Batch Size" value={draft.batchSize || ""} onChange={(e) => setDraft({ ...draft, batchSize: e.target.value })} S={S} />
+              <Field label="Save Steps" value={draft.step || ""} onChange={(e) => setDraft({ ...draft, step: e.target.value })} S={S} />
+              <Field label="cutoff_len" value={draft.cutoffLen || "4096"} onChange={(e) => setDraft({ ...draft, cutoffLen: e.target.value })} S={S} />
+              <Field label="bf16" value={draft.bf16 || "true"} onChange={(e) => setDraft({ ...draft, bf16: e.target.value })} S={S} />
+            </div>
             ) : (
-              <textarea value={yaml} onChange={(e) => setYaml(e.target.value)} style={{ width: "100%", height: 430, borderRadius: 16, padding: 16, background: S.page.background === "#0a0a0a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", fontFamily: "monospace", border: "1px solid", borderColor: S.card.border.split(" ")[2] }} />
+            <textarea value={draft.trainYaml || ""} onChange={(e) => setDraft({ ...draft, trainYaml: e.target.value })} style={{ ...S.input, minHeight: 260, fontFamily: "monospace" }} />
             )}
           </div>
-        )}
-        {tab === "files" && (
-          <div>
-            <SectionTitle title="远程目录" actions={<Button secondary onClick={refreshDirectory} S={S}>刷新目录</Button>} S={S} />
-            <Info label="输出目录" value={`${selected.workDir}/outputs/customer_service_v1/task_002`} />
-            <pre style={{ marginTop: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>
-              {directoryLines.map((line) => (
-                <div key={line}>{line}</div>
-              ))}
-            </pre>
+        ) : null}
+
+        {tab === "files" ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <SectionTitle title="远程目录" actions={<><Button secondary onClick={() => withBusy("同步到远程", () => syncSubtask(subtaskCode))} disabled={!!busy} S={S}>同步到远程</Button><Button onClick={() => getRemoteFiles(subtaskCode).then((data) => setDirectoryLines(data.lines || []))} S={S}>刷新目录</Button></>} S={S} />
+            <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 16, borderRadius: 8, minHeight: 220, overflow: "auto" }}>{directoryLines.join("\n") || "暂无远程目录数据"}</pre>
           </div>
-        )}
-        {tab === "logs" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-              <Button secondary onClick={downloadLogs} S={S}>下载日志</Button>
-            </div>
-            <pre style={{ background: S.page.background === "#0a0a0a" ? "#0f172a" : "#0f172a", color: "#e2e8f0", borderRadius: 16, padding: 16, height: 430, overflow: "auto" }}>
-              {logs.slice(0, count).map((line) => (
-                <div key={line}>{line}</div>
-              ))}
-            </pre>
+        ) : null}
+
+        {tab === "logs" ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <SectionTitle title="训练日志" actions={<Button onClick={() => getSubtaskLogs(subtaskCode).then((data) => setLogs(data.lines || []))} S={S}>刷新日志</Button>} S={S} />
+            <pre style={{ background: "#0f172a", color: "#e2e8f0", padding: 16, borderRadius: 8, minHeight: 320, overflow: "auto" }}>{logs.join("\n") || "暂无训练日志"}</pre>
           </div>
-        )}
-        {tab === "eval" && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-              <Button secondary onClick={loadTest} S={S}>加载测试</Button>
-              <Button onClick={executeEval} S={S}>执行评测</Button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-              <Info label="Adapter 加载测试" value="通过" />
-              <Info label="业务评测脚本" value="运行中" />
-              <Info label="结果可视化" value="待完成" />
-            </div>
-            <pre style={{ marginTop: 16, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#f8fafc", borderRadius: 16, padding: 16, color: S.page.color }}>{evalYaml}</pre>
+        ) : null}
+
+        {tab === "eval" ? (
+          <div style={{ display: "grid", gap: 12 }}>
+            <SectionTitle title="测试评测" actions={<Button onClick={() => withBusy("执行评测", () => evaluateSubtask(subtaskCode))} disabled={!!busy} S={S}>执行评测</Button>} S={S} />
+            <textarea value={draft.evalYaml || ""} onChange={(e) => setDraft({ ...draft, evalYaml: e.target.value })} style={{ ...S.input, minHeight: 220, fontFamily: "monospace" }} />
+            <Info label="当前评测分数" value={draft.score ?? "待评测"} />
           </div>
-        )}
+        ) : null}
       </div>
     </Card>
   );

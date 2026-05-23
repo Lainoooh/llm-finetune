@@ -18,13 +18,15 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
           </tr>
         </thead>
         <tbody>
-          {subtasks.map((s) => (
-            <tr key={s.id}>
+          {subtasks.map((s) => {
+            const displayId = s.subtaskCode || s.id;
+            return (
+            <tr key={displayId}>
               <td style={S.td}>
-                <button onClick={onConfig} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, whiteSpace: "nowrap", display: "block", padding: 0, textAlign: "left" }}>
-                  {s.id}
+                <button onClick={() => onConfig(s)} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, whiteSpace: "nowrap", display: "block", padding: 0, textAlign: "left" }}>
+                  {displayId}
                 </button>
-                <button onClick={onConfig} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", display: "block", marginTop: 2, padding: 0, textAlign: "left" }}>
+                <button onClick={() => onConfig(s)} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", display: "block", marginTop: 2, padding: 0, textAlign: "left" }}>
                   {s.name}
                 </button>
               </td>
@@ -80,7 +82,7 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
                     </svg>
                   </button>
                   <button
-                    onClick={onConfig}
+                    onClick={() => onConfig(s)}
                     style={{
                       border: 0,
                       background: "transparent",
@@ -136,7 +138,8 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

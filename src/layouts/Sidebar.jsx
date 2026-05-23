@@ -6,6 +6,7 @@ export function Sidebar({ page, setPage, S, theme, onThemeChange, themes }) {
     ["servers", "服务器"],
     ["tasks", "微调训练任务"],
     ["compare", "综合对比"],
+    ["scripts", "脚本配置"],
   ];
 
   const active = (key) => (key === "tasks" ? ["tasks", "taskDetail", "subtask"].includes(page) : page === key);

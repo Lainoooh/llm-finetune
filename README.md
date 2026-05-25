@@ -1,164 +1,86 @@
-# llm-finetune
+# LLM Fine-tune Platform
 
-LLM 模型微调工具 - 基于 LLaMA-Factory 的可视化训练平台
-
-## 项目概述
-
-这是一个基于 React + Vite 的微调训练平台前端项目，用于管理和监控 LLaMA-Factory 的微调训练任务。
+基于 LLaMA-Factory 的 LLM 微调训练管理平台，支持服务器管理、训练任务编排、脚本执行和模型对比。
 
 ## 技术栈
 
-- **React 18.3.1** - UI 框架
-- **Vite 5.4.2** - 构建工具
-- **纯 CSS-in-JS** - 样式方案（无额外依赖）
+- **前端**: React 18 + Vite 5 (CSS-in-JS)
+- **后端**: FastAPI + SQLAlchemy + SQLite
+- **远程执行**: asyncssh + WebSocket
+- **构建**: Vite (前端) + Uvicorn (后端)
 
 ## 项目结构
 
 ```
 llm-finetune/
-├── src/
-│   ├── components/          # 通用组件
-│   │   ├── Badge.jsx        # 状态徽章
-│   │   ├── Button.jsx       # 按钮组件
-│   │   ├── Card.jsx         # 卡片容器
-│   │   ├── Field.jsx        # 表单输入
-│   │   ├── Info.jsx         # 信息展示
-│   │   ├── LossChart.jsx    # Loss 曲线图
-│   │   ├── Metric.jsx       # 指标标签
-│   │   ├── SectionTitle.jsx # 区块标题
-│   │   ├── Stat.jsx         # 统计卡片
-│   │   └── TaskTable.jsx    # 任务表格
-│   ├── layouts/             # 布局组件
-│   │   ├── Breadcrumb.jsx   # 面包屑导航
-│   │   └── Sidebar.jsx      # 侧边栏
-│   ├── pages/               # 页面组件
-│   │   ├── Dashboard.jsx    # 总览页
-│   │   ├── ServersPage.jsx  # 服务器管理
-│   │   ├── TaskListPage.jsx # 任务列表
-│   │   ├── TaskDetailPage.jsx # 任务详情
-│   │   ├── SubtaskPage.jsx  # 子任务配置
-│   │   └── ComparePage.jsx  # 综合对比
-│   ├── data/                # 数据层
-│   │   └── mockData.js      # 模拟数据
-│   ├── styles/              # 样式
-│   │   └── styles.js        # 样式常量
-│   ├── App.jsx              # 主应用
-│   └── main.jsx             # 入口文件
-├── index.html               # HTML 模板
-├── package.json             # 项目配置
-└── vite.config.js           # Vite 配置
+├── backend/                # FastAPI 后端
+│   ├── app/
+│   │   ├── api/routes/     # 路由 (dashboard, servers, tasks, executions, scripts)
+│   │   ├── core/           # 配置、事件总线、雪花ID
+│   │   ├── db/             # 数据库 (SQLite)
+│   │   ├── executors/      # 远程执行器 (SSH / Jupyter Terminal)
+│   │   ├── models/         # SQLAlchemy 模型
+│   │   ├── schemas/        # Pydantic 校验
+│   │   ├── services/       # 业务逻辑 (server, task, script, execution)
+│   │   └── tests/
+│   ├── data/               # 数据库文件
+│   ├── requirements.txt
+│   └── main.py
+├── frontend/               # React 前端
+│   ├── src/
+│   │   ├── api/            # API 客户端
+│   │   ├── components/     # 通用组件 (Badge, Button, TaskTable, LossChart...)
+│   │   ├── layouts/        # 布局 (Sidebar, Header, Breadcrumb)
+│   │   ├── pages/          # 页面 (Dashboard, Servers, Tasks, Subtask, Compare, Scripts)
+│   │   └── styles/         # 主题 (dark, chatgpt, fresh)
+│   ├── ui/                 # 独立 UI 组件
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── plan/                   # 方案文档
+└── data/
 ```
 
 ## 功能模块
 
-### 1. 总览（Dashboard）
-- 服务器数量统计
-- 子任务状态统计
-- 训练 Loss 趋势图
-
-### 2. 服务器管理（Servers）
-- 服务器列表展示
-- 服务器连接配置编辑
-- 环境信息查看（GPU、CUDA、PyTorch 等）
-
-### 3. 微调训练任务（Tasks）
-- 任务列表管理
-- 任务详情查看
-- 子任务并行启动
-- 子任务配置（基础配置、数据集、训练参数、日志、评测）
-
-### 4. 综合对比（Compare）
-- Loss 曲线对比
-- 评测结果对比
-- 参数与结果汇总
+| 模块 | 说明 |
+|------|------|
+| **总览 (Dashboard)** | 服务器统计、任务状态、Loss 趋势图 |
+| **服务器管理 (Servers)** | 服务器列表、SSH 配置、环境探测 (GPU/CUDA/PyTorch) |
+| **训练任务 (Tasks)** | 任务 CRUD、子任务并行、LLaMA-Factory YAML 配置 |
+| **脚本执行 (Scripts)** | 内置脚本模板、远程执行、日志实时回传 |
+| **综合对比 (Compare)** | Loss 曲线对比、评测结果对比 |
+| **会话池 (SessionPool)** | SSH 会话复用、并发排队、心跳保活 |
 
 ## 快速开始
 
-### 安装依赖
+### 前端
+
 ```bash
+cd frontend
 npm install
+npm run dev          # http://localhost:30000
 ```
 
-### 启动开发服务器
+### 后端
+
 ```bash
-npm run dev
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 30001
 ```
 
-访问：http://localhost:3000/
+### 构建
 
-### 构建生产版本
 ```bash
-npm run build
+cd frontend
+npm run build        # 输出到 frontend/dist/
 ```
 
-### 预览生产构建
-```bash
-npm run preview
-```
+## 备注
 
-## 开发说明
-
-### 状态管理
-- 使用 React Hooks（useState）管理本地状态
-- 服务器数据：`servers` 状态
-- 任务数据：`task` 状态
-- 页面路由：`page` 状态（字符串切换）
-
-### 页面路由
-当前使用状态切换实现页面导航：
-- `dashboard` - 总览
-- `servers` - 服务器管理
-- `tasks` - 任务列表
-- `taskDetail` - 任务详情
-- `subtask` - 子任务配置
-- `compare` - 综合对比
-
-### 模拟数据
-所有数据存储在 `src/data/mockData.js`，包括：
-- `initialServers` - 服务器列表
-- `initialTask` - 任务数据
-- `lossData` - Loss 曲线数据
-- `logs` - 训练日志
-- `yamlText` - 训练配置 YAML
-- `evalYaml` - 评测配置 YAML
-- `datasetInfo` - 数据集信息
-
-## 后续扩展计划
-
-### 阶段 1：API 集成（待开发）
-- [ ] 创建 API 服务层（`src/api/`）
-- [ ] 替换模拟数据为真实 API 调用
-- [ ] 添加 loading 和 error 状态处理
-
-### 阶段 2：状态管理升级（可选）
-- [ ] 引入 Context API 或 Zustand
-- [ ] 统一管理全局状态
-
-### 阶段 3：路由升级（可选）
-- [ ] 引入 React Router
-- [ ] 实现真实 URL 路由
-
-### 阶段 4：功能增强
-- [ ] 添加表单验证
-- [ ] 添加错误边界
-- [ ] 添加 WebSocket 实时更新
-- [ ] 添加文件上传功能
-
-## 注意事项
-
-1. **样式方案**：当前使用内联样式，如需修改全局样式，编辑 `src/styles/styles.js`
-2. **数据持久化**：当前数据仅存在内存中，刷新页面会重置
-3. **浏览器兼容**：建议使用现代浏览器（Chrome、Firefox、Safari、Edge）
-
-## 项目特点
-
-✅ **轻量级**：无额外 UI 库依赖  
-✅ **快速启动**：Vite HMR 毫秒级热更新  
-✅ **模块化**：组件拆分清晰，易于维护  
-✅ **可扩展**：预留 API 层和状态管理扩展空间  
-
-## 开发者
-
-- 初始版本：2026-05-13
-- 构建工具：Vite 5.4.2
-- React 版本：18.3.1
+- 后端默认监听 `127.0.0.1:30001`，前端开发代理 `/api` → 后端
+- 远程执行依赖 SSH key，需在服务器管理页面配置连接信息
+- 数据库文件位于 `backend/data/llm_finetune.db`，启动时自动初始化

@@ -1,4 +1,4 @@
-export function Field({ label, value, onChange, type = "text", placeholder = "", S, revealable = false, revealed = false, onToggleReveal }) {
+export function Field({ label, value, onChange, type = "text", placeholder = "", S, revealable = false, revealed = false, onToggleReveal, error }) {
   const inputType = revealable ? (revealed ? "text" : "password") : type;
   return (
     <label style={{ display: "block" }}>
@@ -9,7 +9,11 @@ export function Field({ label, value, onChange, type = "text", placeholder = "",
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          style={{ ...S.input, paddingRight: revealable ? 44 : S.input.paddingRight }}
+          style={{
+            ...S.input,
+            paddingRight: revealable ? 44 : S.input.paddingRight,
+            borderColor: error ? "#EF4444" : undefined,
+          }}
         />
         {revealable ? (
           <button
@@ -48,6 +52,9 @@ export function Field({ label, value, onChange, type = "text", placeholder = "",
           </button>
         ) : null}
       </div>
+      {error ? (
+        <div style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>{error}</div>
+      ) : null}
     </label>
   );
 }

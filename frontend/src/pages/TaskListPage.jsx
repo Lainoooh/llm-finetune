@@ -6,6 +6,7 @@ import { Badge } from "../components/Badge";
 import { Field } from "../components/Field";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Breadcrumb } from "../layouts/Breadcrumb";
+import { FilterBar } from "../components/FilterBar";
 import { Pagination } from "../components/Pagination";
 import { cloneTask, createTask, deleteTask, updateTask } from "../api/tasksApi";
 
@@ -14,7 +15,7 @@ const pageSize = 10;
 export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
   const [editOpen, setEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [editDraft, setEditDraft] = useState({ name: "", modelName: "", baseModel: "Qwen/Qwen3-8B", description: "" });
+  const [editDraft, setEditDraft] = useState({ name: "" });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, task: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,7 +25,7 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
   const filteredTasks = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     return tasks.filter((item) => {
-      const matchesSearch = [item.name, item.id, item.taskCode, item.modelName, item.baseModel].some((value) => String(value || "").toLowerCase().includes(searchLower));
+      const matchesSearch = [item.name, item.id, item.taskCode].some((value) => String(value || "").toLowerCase().includes(searchLower));
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -42,18 +43,13 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
 
   function openNew() {
     setEditingTask(null);
-    setEditDraft({ name: "", modelName: "", baseModel: "Qwen/Qwen3-8B", description: "" });
+    setEditDraft({ name: "" });
     setEditOpen(true);
   }
 
   function openEdit(taskRow) {
     setEditingTask(taskRow);
-    setEditDraft({
-      name: taskRow.name,
-      modelName: taskRow.modelName,
-      baseModel: taskRow.baseModel,
-      description: taskRow.description || "",
-    });
+    setEditDraft({ name: taskRow.name });
     setEditOpen(true);
   }
 
@@ -99,102 +95,27 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
         <Breadcrumb page="tasks" setPage={() => {}} task={{ name: "任务列表" }} S={S} />
         <SectionTitle title="任务列表" desc={`共 ${filteredTasks.length} 个微调训练任务`} actions={<Button onClick={openNew} S={S}>新建微调训练任务</Button>} S={S} style={{ marginBottom: 8 }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            {[
-              { key: "all", label: "全部", count: statusCounts.all },
-              { key: "running", label: "运行中", count: statusCounts.running },
-              { key: "succeeded", label: "已完成", count: statusCounts.succeeded },
-              { key: "failed", label: "失败", count: statusCounts.failed },
-              { key: "draft", label: "草稿", count: statusCounts.draft },
-            ].map(({ key, label, count }) => {
-              const isActive = statusFilter === key;
-              const activeColor = S.page.background === "#0a0a0a" ? "#8b5cf6" : "#004EA2";
-              const activeBg = S.page.background === "#0a0a0a" ? "#8b5cf615" : "#F0F7FF";
-              return (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setStatusFilter(key);
-                    setCurrentPage(1);
-                  }}
-                  style={{
-                    padding: "7px 14px",
-                    border: isActive ? `2px solid ${activeColor}` : `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
-                    borderRadius: 8,
-                    background: isActive ? activeBg : (S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff"),
-                    color: isActive ? activeColor : S.page.color,
-                    fontSize: 13,
-                    fontWeight: isActive ? 600 : 500,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontFamily: "inherit",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {label}
-                  <span style={{
-                    padding: "2px 7px",
-                    borderRadius: 5,
-                    background: isActive ? activeColor : (S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb"),
-                    color: isActive ? "#fff" : (S.page.background === "#0a0a0a" ? "#d1d5db" : "#6b7280"),
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div style={{ position: "relative", width: 280 }}>
-            <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8", display: "flex", alignItems: "center" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-            </div>
-            <input
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="搜索任务名、任务ID、模型名..."
-              style={{
-                width: "100%",
-                fontSize: 14,
-                padding: "10px 44px",
-                border: `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
-                borderRadius: 4,
-                background: S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff",
-                color: S.page.color,
-                outline: "none",
-                transition: "all 0.2s",
-                fontFamily: "inherit",
-              }}
-            />
-            {searchTerm ? (
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setCurrentPage(1);
-                }}
-                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", padding: 2, display: "flex", alignItems: "center" }}
-                title="清空搜索"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <FilterBar
+          searchValue={searchTerm}
+          onSearchChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
+          searchPlaceholder="搜索任务名、任务编号..."
+          statusFilter={statusFilter}
+          onStatusFilterChange={(key) => {
+            setStatusFilter(key);
+            setCurrentPage(1);
+          }}
+          statusOptions={[
+            { key: "all", label: "全部", count: statusCounts.all },
+            { key: "running", label: "运行中", count: statusCounts.running },
+            { key: "succeeded", label: "已完成", count: statusCounts.succeeded },
+            { key: "failed", label: "失败", count: statusCounts.failed },
+            { key: "draft", label: "草稿", count: statusCounts.draft },
+          ]}
+          S={S}
+        />
 
         <div style={{ flex: 1, overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 6 }}>
           <table style={S.table}>
@@ -202,8 +123,6 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
               <tr>
                 <th style={S.th}>任务名</th>
                 <th style={S.th}>状态</th>
-                <th style={S.th}>模型名</th>
-                <th style={S.th}>基模</th>
                 <th style={S.th}>子任务</th>
                 <th style={S.th}>操作</th>
               </tr>
@@ -216,9 +135,7 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
                     <div style={{ color: "#94a3b8", fontSize: 12 }}>{r.taskCode || r.id}</div>
                   </td>
                   <td style={S.td}><Badge status={r.status} statusPalette={statusPalette} /></td>
-                  <td style={S.td}>{r.modelName}</td>
-                  <td style={S.td}>{r.baseModel}</td>
-                  <td style={S.td}>总数 {r.subtaskCount} / 训练中 {r.runningCount}</td>
+                  <td style={S.td}><SubtaskProgress r={r} S={S} /></td>
                   <td style={S.td}>
                     <div style={{ display: "flex", gap: 8 }}>
                       <IconButton title="Details" S={S} onClick={() => selectTask(r.taskCode || r.id)}>
@@ -244,7 +161,7 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
                 </tr>
               ))}
               {currentTasks.length === 0 ? (
-                <tr><td style={S.td} colSpan="6">暂无任务数据</td></tr>
+                <tr><td style={S.td} colSpan="4">暂无任务数据</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -265,9 +182,12 @@ export function TaskListPage({ tasks, reload, selectTask, S, statusPalette }) {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
               <Field label="任务名称" value={editDraft.name} onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })} S={S} />
-              <Field label="模型名称" value={editDraft.modelName} onChange={(e) => setEditDraft({ ...editDraft, modelName: e.target.value })} S={S} />
-              <Field label="基础模型" value={editDraft.baseModel} onChange={(e) => setEditDraft({ ...editDraft, baseModel: e.target.value })} S={S} />
-              <Field label="描述" value={editDraft.description} onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })} S={S} />
+              {editingTask ? (
+                <div>
+                  <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>任务编号（不可修改）</div>
+                  <div style={{ ...S.input, color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8", background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#f1f5f9", fontFamily: "monospace" }}>{editingTask.taskCode}</div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -306,5 +226,42 @@ function IconButton({ title, onClick, children, S, danger = false }) {
         {children}
       </svg>
     </button>
+  );
+}
+
+function SubtaskProgress({ r, S }) {
+  const total = r.subtaskCount || 0;
+  const muted = S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8";
+  const subtle = S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b";
+  const pct = total > 0 ? Math.round((r.succeededCount / total) * 100) : 0;
+
+  if (total === 0) {
+    return <span style={{ fontSize: 12, color: muted }}>暂无子任务</span>;
+  }
+
+  const items = [
+    { label: "成功", count: r.succeededCount, color: "#10b981" },
+    { label: "运行中", count: r.runningCount, color: "#004EA2" },
+    { label: "失败", count: r.failedCount, color: "#ef4444" },
+    { label: "草稿", count: r.draftCount, color: S.page.background === "#0a0a0a" ? "#6b7280" : "#9CA3AF" },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <div style={{ flex: 1, height: 6, borderRadius: 3, background: S.envCards.progressBarBg, overflow: "hidden" }}>
+          <div style={{ width: `${pct}%`, height: "100%", background: "#10b981", borderRadius: 3, transition: "width 0.3s" }} />
+        </div>
+        <span style={{ fontSize: 12, color: subtle, whiteSpace: "nowrap" }}>{r.succeededCount}/{total}</span>
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {items.map((item) => (
+          <span key={item.label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: subtle }}>
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: item.color, flexShrink: 0 }} />
+            {item.label}: {item.count}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }

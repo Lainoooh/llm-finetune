@@ -7,6 +7,7 @@ import { Info } from "../components/Info";
 import { SectionTitle } from "../components/SectionTitle";
 import { Breadcrumb } from "../layouts/Breadcrumb";
 import { evaluateSubtask, getRemoteFiles, getSubtaskLogs, startSubtask, stopSubtask, syncSubtask, updateSubtask } from "../api/tasksApi";
+import { DatasetTab } from "../components/dataset/DatasetTab";
 
 export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, statusPalette }) {
   const [tab, setTab] = useState("base");
@@ -67,12 +68,12 @@ export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, s
       const payload = {
         name: draft.name,
         serverId: draft.serverId,
+        baseModel: draft.baseModel,
         gpu: draft.gpu,
         learningRate: draft.learningRate,
         epoch: Number(draft.epoch || 1),
         batchSize: Number(draft.batchSize || 1),
         step: Number(draft.step || 100),
-        outputDir: draft.outputDir,
         trainYaml: draft.trainYaml,
         evalYaml: draft.evalYaml,
         datasetInfo: draft.datasetInfo,
@@ -100,12 +101,8 @@ export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, s
               <span style={{ color: S.page.color, fontWeight: 700, fontSize: 18 }}>{task.name}</span>
               <Badge status={task.status} statusPalette={statusPalette} />
             </div>
-            <div style={{ fontSize: 12, color: S.page.background === "#F8F9FA" ? "#9CA3AF" : "#6b7280", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontSize: 12, color: S.page.background === "#F8F9FA" ? "#9CA3AF" : "#6b7280", marginTop: 4, fontFamily: "monospace" }}>
               <span>{task.taskCode || task.id}</span>
-              <span style={{ color: S.page.background === "#F8F9FA" ? "#D1D5DB" : "#4b5563" }}>|</span>
-              <span>训练模型名：{task.modelName}</span>
-              <span style={{ color: S.page.background === "#F8F9FA" ? "#D1D5DB" : "#4b5563" }}>|</span>
-              <span>基模：{task.baseModel}</span>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -129,6 +126,7 @@ export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, s
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>失败: {failed}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 2, background: S.page.background === "#0a0a0a" ? "#6b7280" : "#9CA3AF" }} />
             <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>待处理: {pending}</span>
           </div>
           <div style={{ fontWeight: 600, color: S.page.color }}>总计: {subtasks.length}</div>
@@ -187,9 +185,12 @@ export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, s
               <Field label="GPU" value={draft.gpu || ""} onChange={(e) => setDraft({ ...draft, gpu: e.target.value })} S={S} />
               </div>
               <div style={{ marginBottom: 12 }}>
-                <Field label="基模路径" value={task.baseModel || "-"} onChange={() => {}} S={S} />
+                <Field label="基模路径" value={draft.baseModel || ""} onChange={(e) => setDraft({ ...draft, baseModel: e.target.value })} S={S} />
               </div>
-              <Field label="输出目录" value={draft.outputDir || ""} onChange={(e) => setDraft({ ...draft, outputDir: e.target.value })} S={S} />
+              <div>
+                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>输出目录（自动计算，不可修改）</div>
+                <div style={{ ...S.input, color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8", background: S.page.background === "#0a0a0a" ? "#1a1a1a" : "#f1f5f9", fontFamily: "monospace", fontSize: 13 }}>{draft.outputDir || "-"}</div>
+              </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
@@ -199,10 +200,10 @@ export function SubtaskPage({ task, subtask, servers, refreshTask, setPage, S, s
         ) : null}
 
         {tab === "dataset" ? (
-          <div style={{ display: "grid", gap: 12 }}>
-            <SectionTitle title="数据集配置" actions={<Button onClick={saveConfig} disabled={!!busy} S={S}>保存数据集</Button>} S={S} />
-            <textarea value={draft.datasetInfo || "{}"} onChange={(e) => setDraft({ ...draft, datasetInfo: e.target.value })} style={{ ...S.input, minHeight: 220, fontFamily: "monospace" }} />
-          </div>
+          <DatasetTab
+            subtaskCode={subtask.subtaskCode || subtask.id}
+            theme={S.page.background === "#0a0a0a" ? "dark" : "light"}
+          />
         ) : null}
 
         {tab === "params" ? (

@@ -33,7 +33,7 @@ DEFAULT_LOGS = [
 def _default_train_yaml(task: FinetuneTask, subtask: FinetuneSubtask) -> str:
     return "\n".join(
         [
-            f"model_name_or_path: {task.base_model}",
+            f"model_name_or_path: {subtask.base_model}",
             "stage: sft",
             "do_train: true",
             "finetuning_type: lora",
@@ -54,7 +54,7 @@ def _default_train_yaml(task: FinetuneTask, subtask: FinetuneSubtask) -> str:
 def _default_eval_yaml(task: FinetuneTask, subtask: FinetuneSubtask) -> str:
     return "\n".join(
         [
-            f"model_name_or_path: {task.base_model}",
+            f"model_name_or_path: {subtask.base_model}",
             f"adapter_name_or_path: {subtask.output_dir}/adapter",
             "finetuning_type: lora",
             "template: qwen",
@@ -68,7 +68,7 @@ def _default_eval_yaml(task: FinetuneTask, subtask: FinetuneSubtask) -> str:
 
 def _default_directory(task: FinetuneTask, subtask: FinetuneSubtask) -> list[str]:
     return [
-        f"outputs/{task.name}/",
+        f"{task.task_code}/",
         f"  {subtask.subtask_code}/",
         "    configs/train.yaml",
         "    logs/train.log",
@@ -82,11 +82,10 @@ def seed_default_tasks(db: Session) -> None:
     if existing:
         return
     server = db.scalar(select(ServerProfile).order_by(ServerProfile.created_at))
+    work_dir = server.work_dir if server else "/home/jovyan/work"
     task = FinetuneTask(
         task_code="task-customer-service-v1",
         name="customer_service_v1",
-        model_name="customer_service_v1",
-        base_model="Qwen/Qwen3-8B",
         status="waiting",
         description="默认示例任务，可直接用于联调真实接口。",
     )
@@ -104,6 +103,7 @@ def seed_default_tasks(db: Session) -> None:
             server_profile_id=server.id if server else None,
             name=name,
             status=status,
+            base_model="Qwen/Qwen3-8B",
             gpu_ids=gpu,
             learning_rate=lr,
             epoch=epoch,
@@ -111,7 +111,7 @@ def seed_default_tasks(db: Session) -> None:
             step=step,
             loss=loss,
             score=score,
-            output_dir=f"/home/jovyan/work/outputs/{task.name}/{code}",
+            output_dir=f"{work_dir}/{task.task_code}/{code}",
             dataset_info=json.dumps(
                 {
                     "train_dataset": {
@@ -188,8 +188,6 @@ def task_to_out(db: Session, task: FinetuneTask) -> TaskOut:
         id=task.task_code,
         taskCode=task.task_code,
         name=task.name,
-        modelName=task.model_name,
-        baseModel=task.base_model,
         description=task.description,
         status=task.status,
         subtaskCount=len(subtasks),
@@ -215,6 +213,7 @@ def subtask_to_out(db: Session, subtask: FinetuneSubtask) -> SubtaskOut:
         serverId=server.public_id if server else None,
         serverName=server.name if server else "-",
         status=subtask.status,
+        baseModel=subtask.base_model,
         gpu=subtask.gpu_ids,
         learningRate=subtask.learning_rate,
         epoch=subtask.epoch,
@@ -236,7 +235,7 @@ def list_tasks(db: Session, keyword: str = "", status: str = "all") -> list[Fine
     query = select(FinetuneTask)
     if keyword:
         like = f"%{keyword}%"
-        query = query.where((FinetuneTask.name.like(like)) | (FinetuneTask.task_code.like(like)) | (FinetuneTask.model_name.like(like)))
+        query = query.where((FinetuneTask.name.like(like)) | (FinetuneTask.task_code.like(like)))
     if status and status != "all":
         query = query.where(FinetuneTask.status == status)
     return list(db.scalars(query.order_by(FinetuneTask.created_at)))
@@ -246,8 +245,6 @@ def create_task(db: Session, payload: TaskCreateIn) -> FinetuneTask:
     task = FinetuneTask(
         task_code=public_code("task"),
         name=payload.name,
-        model_name=payload.modelName or payload.name,
-        base_model=payload.baseModel,
         description=payload.description,
         status=payload.status,
     )
@@ -259,7 +256,7 @@ def create_task(db: Session, payload: TaskCreateIn) -> FinetuneTask:
 
 def update_task(db: Session, task: FinetuneTask, payload: TaskUpdateIn) -> FinetuneTask:
     data = payload.model_dump(exclude_unset=True)
-    mapping = {"modelName": "model_name", "baseModel": "base_model"}
+    mapping = {}
     for key, value in data.items():
         attr = mapping.get(key, key)
         if hasattr(task, attr):
@@ -273,8 +270,6 @@ def clone_task(db: Session, task: FinetuneTask, payload: TaskCloneIn) -> Finetun
     cloned = FinetuneTask(
         task_code=public_code("task"),
         name=payload.name or f"{task.name}_copy",
-        model_name=f"{task.model_name}_copy" if task.model_name else "",
-        base_model=task.base_model,
         description=task.description,
         status="draft",
     )
@@ -282,18 +277,20 @@ def clone_task(db: Session, task: FinetuneTask, payload: TaskCloneIn) -> Finetun
     db.flush()
     if payload.copySubtasks:
         for item in _subtasks_for_task(db, task.id):
+            new_code = public_code("subtask")
             copy = FinetuneSubtask(
-                subtask_code=public_code("subtask"),
+                subtask_code=new_code,
                 task_id=cloned.id,
                 server_profile_id=item.server_profile_id,
                 name=f"{item.name}_copy",
                 status="draft",
+                base_model=item.base_model,
                 gpu_ids=item.gpu_ids,
                 learning_rate=item.learning_rate,
                 epoch=item.epoch,
                 batch_size=item.batch_size,
                 step=item.step,
-                output_dir=item.output_dir.replace(task.name, cloned.name),
+                output_dir=item.output_dir.replace(task.task_code, cloned.task_code).replace(item.subtask_code, new_code),
                 train_yaml=item.train_yaml,
                 eval_yaml=item.eval_yaml,
                 dataset_info=item.dataset_info,
@@ -319,6 +316,7 @@ def delete_task(db: Session, task: FinetuneTask) -> None:
 
 def create_subtask(db: Session, task: FinetuneTask, payload: SubtaskCreateIn) -> FinetuneSubtask:
     server = _server_by_public_id(db, payload.serverId)
+    work_dir = server.work_dir if server else "/home/jovyan/work"
     code = public_code("subtask")
     subtask = FinetuneSubtask(
         subtask_code=code,
@@ -326,12 +324,13 @@ def create_subtask(db: Session, task: FinetuneTask, payload: SubtaskCreateIn) ->
         server_profile_id=server.id if server else None,
         name=payload.name,
         status="draft",
+        base_model=payload.baseModel,
         gpu_ids=payload.gpu,
         learning_rate=payload.learningRate,
         epoch=payload.epoch,
         batch_size=payload.batchSize,
         step=payload.step,
-        output_dir=payload.outputDir or f"/home/jovyan/work/outputs/{task.name}/{code}",
+        output_dir=f"{work_dir}/{task.task_code}/{code}",
         dataset_info=payload.datasetInfo,
         logs_text="\n".join(DEFAULT_LOGS),
     )
@@ -348,10 +347,10 @@ def create_subtask(db: Session, task: FinetuneTask, payload: SubtaskCreateIn) ->
 def update_subtask(db: Session, subtask: FinetuneSubtask, payload: SubtaskUpdateIn) -> FinetuneSubtask:
     data = payload.model_dump(exclude_unset=True)
     mapping = {
+        "baseModel": "base_model",
         "gpu": "gpu_ids",
         "learningRate": "learning_rate",
         "batchSize": "batch_size",
-        "outputDir": "output_dir",
         "trainYaml": "train_yaml",
         "evalYaml": "eval_yaml",
         "datasetInfo": "dataset_info",
@@ -372,18 +371,24 @@ def update_subtask(db: Session, subtask: FinetuneSubtask, payload: SubtaskUpdate
 
 
 def clone_subtask(db: Session, subtask: FinetuneSubtask) -> FinetuneSubtask:
+    task = db.get(FinetuneTask, subtask.task_id)
+    new_code = public_code("subtask")
+    server = _server_by_internal_id(db, subtask.server_profile_id)
+    work_dir = server.work_dir if server else "/home/jovyan/work"
+    output_dir = f"{work_dir}/{task.task_code}/{new_code}" if task else f"{subtask.output_dir}_copy"
     cloned = FinetuneSubtask(
-        subtask_code=public_code("subtask"),
+        subtask_code=new_code,
         task_id=subtask.task_id,
         server_profile_id=subtask.server_profile_id,
         name=f"{subtask.name}_copy",
         status="draft",
+        base_model=subtask.base_model,
         gpu_ids=subtask.gpu_ids,
         learning_rate=subtask.learning_rate,
         epoch=subtask.epoch,
         batch_size=subtask.batch_size,
         step=subtask.step,
-        output_dir=f"{subtask.output_dir}_copy",
+        output_dir=output_dir,
         train_yaml=subtask.train_yaml,
         eval_yaml=subtask.eval_yaml,
         dataset_info=subtask.dataset_info,
@@ -392,7 +397,6 @@ def clone_subtask(db: Session, subtask: FinetuneSubtask) -> FinetuneSubtask:
         config_json=subtask.config_json,
     )
     db.add(cloned)
-    task = db.get(FinetuneTask, subtask.task_id)
     if task:
         task.status = task_status_from_subtasks(_subtasks_for_task(db, task.id) + [cloned])
     db.commit()

@@ -495,6 +495,8 @@ def _normalize_hardware(raw: dict[str, Any], target: ProbeTarget) -> dict[str, A
     all_gpu_ids = raw.get("all_gpu_ids") or []
     if isinstance(all_gpu_ids, str):
         all_gpu_ids = [x.strip() for x in all_gpu_ids.split(",") if x.strip()]
+    # 兜底：如果列表里有逗号分隔的字符串，展开
+    all_gpu_ids = [x.strip() for item in all_gpu_ids for x in str(item).split(",") if x.strip()]
 
     cuda_from_nvidia = str(raw.get("cuda_version") or "").strip()
 

@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Breadcrumb } from "../layouts/Breadcrumb";
 import { Pagination } from "../components/Pagination";
 import { TaskTable } from "../components/TaskTable";
+import { Field } from "../components/Field";
 import { cloneSubtask, createSubtask, deleteSubtask, startTask } from "../api/tasksApi";
 
 const pageSize = 10;
@@ -17,6 +18,8 @@ export function TaskDetailPage({ task, refreshTask, selectSubtask, setPage, S, s
   const [statusFilter, setStatusFilter] = useState("all");
   const [openStatusDropdown, setOpenStatusDropdown] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [newSubtaskOpen, setNewSubtaskOpen] = useState(false);
+  const [newSubtaskDraft, setNewSubtaskDraft] = useState({ name: "", baseModel: "" });
   const dropdownRef = useRef(null);
 
   const subtasks = task.subtasks || [];
@@ -93,16 +96,27 @@ export function TaskDetailPage({ task, refreshTask, selectSubtask, setPage, S, s
     }
   }
 
-  async function createNewSubtask() {
+  function openNewSubtask() {
+    setNewSubtaskDraft({ name: `new_subtask_${subtasks.length + 1}`, baseModel: "" });
+    setNewSubtaskOpen(true);
+  }
+
+  async function confirmCreateSubtask() {
+    if (!newSubtaskDraft.baseModel?.trim()) {
+      alert("请填写基模路径");
+      return;
+    }
     try {
       await createSubtask(task.taskCode || task.id, {
-        name: `new_subtask_${subtasks.length + 1}`,
+        name: newSubtaskDraft.name,
+        baseModel: newSubtaskDraft.baseModel,
         gpu: "0",
         learningRate: "5e-5",
         epoch: 3,
         batchSize: 2,
         step: 500,
       });
+      setNewSubtaskOpen(false);
       await refreshTask();
     } catch (error) {
       alert(`新建子任务失败：${error.message}`);
@@ -120,16 +134,12 @@ export function TaskDetailPage({ task, refreshTask, selectSubtask, setPage, S, s
                 <span style={{ color: S.page.color, fontWeight: 700, fontSize: 18 }}>{task.name}</span>
                 <Badge status={task.status} statusPalette={statusPalette} />
               </div>
-              <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 4, fontFamily: "monospace" }}>
                 <span>{task.taskCode || task.id}</span>
-                <span>|</span>
-                <span>训练模型名：{task.modelName}</span>
-                <span>|</span>
-                <span>基模：{task.baseModel}</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button secondary onClick={createNewSubtask} S={S}>新建子任务</Button>
+              <Button secondary onClick={openNewSubtask} S={S}>新建子任务</Button>
               <Button onClick={handleStartAll} disabled={busy || !subtasks.length} S={S}>{busy ? "启动中..." : "并行启动任务"}</Button>
             </div>
           </div>
@@ -149,6 +159,7 @@ export function TaskDetailPage({ task, refreshTask, selectSubtask, setPage, S, s
               <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>失败: {statusCounts.failed}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: S.page.background === "#0a0a0a" ? "#6b7280" : "#9CA3AF" }}></div>
               <span style={{ color: S.page.background === "#F8F9FA" ? "#6B7280" : "#9ca3af" }}>草稿: {statusCounts.draft}</span>
             </div>
             <div style={{ fontWeight: 600, color: S.page.color }}>总计: {subtasks.length}</div>
@@ -252,6 +263,24 @@ export function TaskDetailPage({ task, refreshTask, selectSubtask, setPage, S, s
       </Card>
 
       <ConfirmDialog open={deleteConfirm.open} title="删除子任务" message={`确定要删除子任务 "${deleteConfirm.subtask?.id}" (${deleteConfirm.subtask?.name}) 吗？删除后将无法恢复。`} onConfirm={confirmDelete} onCancel={() => setDeleteConfirm({ open: false, subtask: null })} confirmText="删除" danger S={S} />
+
+      {newSubtaskOpen ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 50 }}>
+          <div style={{ background: S.card.background, borderRadius: 8, padding: 24, width: "min(520px, 100%)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: 16, marginBottom: 20 }}>
+              <b style={{ fontSize: 20, color: S.page.color }}>新建子任务</b>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button secondary onClick={() => setNewSubtaskOpen(false)} S={S}>取消</Button>
+                <Button onClick={confirmCreateSubtask} disabled={!newSubtaskDraft.baseModel?.trim() || !newSubtaskDraft.name?.trim()} S={S}>创建</Button>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+              <Field label="子任务名称" value={newSubtaskDraft.name} onChange={(e) => setNewSubtaskDraft({ ...newSubtaskDraft, name: e.target.value })} S={S} />
+              <Field label="基模路径（必填）" value={newSubtaskDraft.baseModel} onChange={(e) => setNewSubtaskDraft({ ...newSubtaskDraft, baseModel: e.target.value })} S={S} placeholder="如 Qwen/Qwen3-8B" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

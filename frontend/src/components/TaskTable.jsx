@@ -9,6 +9,7 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
         <thead>
           <tr>
             <th style={S.th}>子任务</th>
+            <th style={S.th}>基模</th>
             <th style={S.th}>状态</th>
             <th style={S.th}>服务器</th>
             <th style={S.th}>GPU</th>
@@ -24,11 +25,14 @@ export function TaskTable({ subtasks, onClone, onConfig, onDelete, S, statusPale
             <tr key={displayId}>
               <td style={S.td}>
                 <button onClick={() => onConfig(s)} style={{ border: 0, background: "transparent", fontWeight: 800, cursor: "pointer", color: S.page.color, whiteSpace: "nowrap", display: "block", padding: 0, textAlign: "left" }}>
-                  {displayId}
-                </button>
-                <button onClick={() => onConfig(s)} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", display: "block", marginTop: 2, padding: 0, textAlign: "left" }}>
                   {s.name}
                 </button>
+                <button onClick={() => onConfig(s)} style={{ border: 0, background: "transparent", color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", display: "block", marginTop: 2, padding: 0, textAlign: "left", fontFamily: "monospace" }}>
+                  {displayId}
+                </button>
+              </td>
+              <td style={S.td}>
+                <span style={{ fontSize: 13, color: S.page.color, wordBreak: "break-all" }}>{s.baseModel || "-"}</span>
               </td>
               <td style={S.td}>
                 <Badge status={s.status} statusPalette={statusPalette} />

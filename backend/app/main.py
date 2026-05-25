@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import dashboard, debug, executions, scripts, servers, system, tasks
+from app.api.routes import dashboard, datasets, debug, executions, scripts, servers, system, tasks
 from app.core.config import get_settings
 from app.core.snowflake import configure_snowflake
 from app.db.session import SessionLocal, init_db
 from app.executors.factory import remote_executor
-from app.models import ServerProbeItem, ServerProbeTask
+from app.models import FinetuneSubtask, FinetuneTask, ServerProbeItem, ServerProbeTask
 from app.services.script_service import seed_builtin_scripts
 from app.services.server_service import seed_default_server
 from app.services.task_service import seed_default_tasks
@@ -27,6 +27,8 @@ def create_app() -> FastAPI:
     with SessionLocal() as db:
         db.query(ServerProbeItem).delete()
         db.query(ServerProbeTask).delete()
+        db.query(FinetuneSubtask).delete()
+        db.query(FinetuneTask).delete()
         db.commit()
     with SessionLocal() as db:
         seed_builtin_scripts(db)
@@ -48,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(executions.router, prefix="/api")
     app.include_router(scripts.router, prefix="/api")
     app.include_router(debug.router, prefix="/api")
+    app.include_router(datasets.router, prefix="/api")
     return app
 
 

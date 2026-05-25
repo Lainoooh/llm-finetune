@@ -158,8 +158,6 @@ class TaskOut(BaseModel):
     id: str
     taskCode: str
     name: str
-    modelName: str
-    baseModel: str
     description: str = ""
     status: str
     subtaskCount: int = 0
@@ -176,16 +174,12 @@ class TasksListOut(BaseModel):
 
 class TaskCreateIn(BaseModel):
     name: str
-    modelName: str = ""
-    baseModel: str = "Qwen/Qwen3-8B"
     description: str = ""
     status: str = "draft"
 
 
 class TaskUpdateIn(BaseModel):
     name: Optional[str] = None
-    modelName: Optional[str] = None
-    baseModel: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
 
@@ -203,6 +197,7 @@ class SubtaskOut(BaseModel):
     serverId: Optional[str] = None
     serverName: str = "-"
     status: str
+    baseModel: str = ""
     gpu: str = ""
     learningRate: str = "5e-5"
     epoch: int = 3
@@ -226,13 +221,13 @@ class SubtasksListOut(BaseModel):
 
 class SubtaskCreateIn(BaseModel):
     name: str
+    baseModel: str
     serverId: Optional[str] = None
     gpu: str = ""
     learningRate: str = "5e-5"
     epoch: int = 3
     batchSize: int = 2
     step: int = 500
-    outputDir: str = ""
     trainYaml: str = ""
     evalYaml: str = ""
     datasetInfo: str = "{}"
@@ -242,6 +237,7 @@ class SubtaskUpdateIn(BaseModel):
     name: Optional[str] = None
     serverId: Optional[str] = None
     status: Optional[str] = None
+    baseModel: Optional[str] = None
     gpu: Optional[str] = None
     learningRate: Optional[str] = None
     epoch: Optional[int] = None
@@ -249,7 +245,6 @@ class SubtaskUpdateIn(BaseModel):
     step: Optional[int] = None
     loss: Optional[float] = None
     score: Optional[float] = None
-    outputDir: Optional[str] = None
     trainYaml: Optional[str] = None
     evalYaml: Optional[str] = None
     datasetInfo: Optional[str] = None

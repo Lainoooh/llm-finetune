@@ -194,7 +194,7 @@ except Exception:
     env_info = {}
 
 tool_version_raw = run(f"docker exec {shlex.quote(container)} bash -c 'llamafactory-cli version 2>/dev/null || python3 -m llamafactory.cli version 2>/dev/null'", timeout=10, name="finetune_tool")
-_version_match = re.search(r'version\s+([\d.]+(?:\.(?:dev|post|a|b|rc)\d+)?)', tool_version_raw, re.IGNORECASE)
+_version_match = re.search(r'version\s+(\d+(?:\.\d+)+(?:[._-]?(?:dev|post|a|b|rc)\d*)?)', tool_version_raw, re.IGNORECASE)
 tool_version = _version_match.group(1) if _version_match else (tool_version_raw.strip() if tool_version_raw else "-")
 
 emit({

@@ -4,7 +4,10 @@ import { SectionTitle } from "../components/SectionTitle";
 import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
 import { Field } from "../components/Field";
+import { GpuIdSelector } from "../components/GpuIdSelector";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { FilterBar } from "../components/FilterBar";
+import { ServerActions } from "../components/ServerActions";
 import Spinner from "../components/Spinner";
 import { Pagination } from "../components/Pagination";
 import { createServer, deleteServer as deleteServerApi, getProbeTask, probeDraftServer, probeServer, updateServer } from "../api/serversApi";
@@ -317,6 +320,31 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
     setOpen(true);
   }
 
+  function cloneServer(id) {
+    const server = servers.find((s) => s.id === id);
+    if (!server) return;
+    setSelectedId(null);
+    setDraft({
+      name: `${server.name} (副本)`,
+      accessType: server.accessType || "jupyter",
+      user: server.user || "",
+      password: server.password || "",
+      host: server.host || "",
+      sshPort: server.sshPort || 22,
+      sshKey: server.sshKey || "",
+      jupyterBaseUrl: server.jupyterBaseUrl || "",
+      token: server.token || "",
+      workDir: server.workDir || "",
+      gpuIds: server.gpuIds || "",
+      finetuneToolName: server.finetuneToolName || "LLaMA-Factory",
+      finetuneToolContainerName: server.finetuneToolContainerName || "",
+    });
+    setEnvInfo(makeEmptyEnvInfo());
+    setSecretVisible({ token: false, password: false });
+    draftProbeCodeRef.current = null;
+    setOpen(true);
+  }
+
   function openEdit(id) {
     const server = servers.find((s) => s.id === id);
     if (!server) return;
@@ -474,6 +502,7 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
   function validateDraft({ requireGpuIds = false } = {}) {
     if (!draft.name?.trim()) return "请填写服务器名称";
     if (requireGpuIds && !draft.gpuIds?.trim()) return "请填写设备编号";
+    if (draft.gpuIds?.trim() && !/^\d+(,\d+)*$/.test(draft.gpuIds.trim())) return "设备编号格式错误，应为逗号分隔的数字，如 0,1,2,3";
     if (!draft.workDir?.trim()) return "请填写工作目录";
     if (!draft.finetuneToolName?.trim()) return "请选择微调工具";
     if (!draft.finetuneToolContainerName?.trim()) return "请填写微调工具容器名";
@@ -554,167 +583,23 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
           style={{ marginBottom: 8 }}
         />
 
-        {/* 筛选行：状态标签（左） + 搜索框（右） */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 12,
-        }}>
-          {/* 左侧：状态筛选 */}
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[
-              { key: 'all', label: '全部', count: statusCounts.all },
-              { key: 'online', label: '在线', count: statusCounts.online },
-              { key: 'offline', label: '离线', count: statusCounts.offline },
-            ].map(({ key, label, count }) => {
-              const isActive = statusFilter === key;
-              const activeColor = S.page.background === "#0a0a0a" ? "#8b5cf6" : "#004EA2";
-              const activeBg = S.page.background === "#0a0a0a" ? "#8b5cf615" : "#F0F7FF";
-
-              return (
-                <button
-                  key={key}
-                  onClick={() => handleStatusFilter(key)}
-                  style={{
-                    padding: '7px 14px',
-                    border: isActive
-                      ? `2px solid ${activeColor}`
-                      : `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
-                    borderRadius: 8,
-                    background: isActive
-                      ? activeBg
-                      : (S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff"),
-                    color: isActive ? activeColor : S.page.color,
-                    fontSize: 13,
-                    fontWeight: isActive ? 600 : 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 7,
-                    fontFamily: 'inherit',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#4b5563" : "#cbd5e1";
-                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#111827" : "#f8fafc";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0";
-                      e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff";
-                    }
-                  }}
-                >
-                  {label}
-                  {count !== undefined && (
-                    <span style={{
-                      padding: '2px 7px',
-                      borderRadius: 5,
-                      background: isActive
-                        ? activeColor
-                        : (S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb"),
-                      color: isActive
-                        ? '#fff'
-                        : (S.page.background === "#0a0a0a" ? "#d1d5db" : "#6b7280"),
-                      fontSize: 11,
-                      fontWeight: 700,
-                      minWidth: 20,
-                      textAlign: 'center',
-                    }}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* 右侧：搜索框 */}
-          <div style={{ position: 'relative', width: 280 }}>
-            <div style={{
-              position: 'absolute',
-              left: 14,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              pointerEvents: 'none',
-              color: S.page.background === "#0a0a0a" ? "#6b7280" : "#94a3b8",
-              display: 'flex',
-              alignItems: 'center',
-            }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-            </div>
-
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearch}
-              placeholder="搜索服务器名称、地址..."
-              style={{
-                width: '100%',
-                fontSize: 14,
-                padding: '10px 44px 10px 44px',
-                border: `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
-                borderRadius: 4,
-                background: S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff",
-                color: S.page.color,
-                outline: 'none',
-                transition: 'all 0.2s',
-                fontFamily: 'inherit',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#667eea';
-                e.target.style.background = S.page.background === "#0a0a0a" ? "#111827" : "#f9fafb";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0";
-                e.target.style.background = S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff";
-              }}
-            />
-
-            {searchTerm && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setCurrentPage(1);
-                }}
-                style={{
-                  position: 'absolute',
-                  right: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  border: 0,
-                  background: S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb",
-                  cursor: 'pointer',
-                  padding: 6,
-                  borderRadius: 4,
-                  color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6b7280",
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#4b5563" : "#d1d5db";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb";
-                }}
-                title="清除搜索"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
+        {/* 筛选行 */}
+        <FilterBar
+          searchValue={searchTerm}
+          onSearchChange={handleSearch}
+          searchPlaceholder="搜索服务器名称、地址..."
+          statusFilter={statusFilter}
+          onStatusFilterChange={(key) => {
+            setStatusFilter(key);
+            setCurrentPage(1);
+          }}
+          statusOptions={[
+            { key: 'all', label: '全部', count: statusCounts.all },
+            { key: 'online', label: '在线', count: statusCounts.online },
+            { key: 'offline', label: '离线', count: statusCounts.offline },
+          ]}
+          S={S}
+        />
 
         {/* 可滚动区域：表格 */}
         <div style={{ flex: 1, overflow: 'auto' }}>
@@ -771,97 +656,15 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
                     )}
                   </td>
                   <td style={S.td}>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={() => testServerConnection(s.id)}
-                        disabled={testingServers.has(s.id)}
-                        style={{
-                          border: 0,
-                          background: "transparent",
-                          cursor: testingServers.has(s.id) ? "not-allowed" : "pointer",
-                          padding: 6,
-                          borderRadius: 6,
-                          color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
-                          transition: "all 0.2s",
-                          opacity: testingServers.has(s.id) ? 0.5 : 1,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!testingServers.has(s.id)) {
-                            e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#F9FAFB";
-                            e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#e5e7eb" : "#004EA2";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!testingServers.has(s.id)) {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
-                          }
-                        }}
-                        title="连通性检查"
-                      >
-                        {testingServers.has(s.id) ? (
-                          <Spinner size="small" />
-                        ) : (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => openEdit(s.id)}
-                        style={{
-                          border: 0,
-                          background: "transparent",
-                          cursor: "pointer",
-                          padding: 6,
-                          borderRadius: 6,
-                          color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#F9FAFB";
-                          e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#e5e7eb" : "#004EA2";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
-                        }}
-                        title="编辑"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => deleteServer(s.id)}
-                        style={{
-                          border: 0,
-                          background: "transparent",
-                          cursor: "pointer",
-                          padding: 6,
-                          borderRadius: 6,
-                          color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#2d2d2d" : "#FEF2F2";
-                          e.currentTarget.style.color = "#EF4444";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = S.page.background === "#0a0a0a" ? "#9ca3af" : "#6B7280";
-                        }}
-                        title="删除"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <line x1="10" y1="11" x2="10" y2="17" />
-                          <line x1="14" y1="11" x2="14" y2="17" />
-                        </svg>
-                      </button>
-                    </div>
+                    <ServerActions
+                      serverId={s.id}
+                      testing={testingServers.has(s.id)}
+                      onTest={testServerConnection}
+                      onClone={cloneServer}
+                      onEdit={openEdit}
+                      onDelete={deleteServer}
+                      S={S}
+                    />
                   </td>
                 </tr>
                 );
@@ -899,13 +702,26 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
             </div>
 
             <SectionTitle title="基础配置" S={S} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 2fr", gridTemplateRows: "auto auto", gap: 16 }}>
+              {/* Row 1, Col 1: 服务器名称 */}
               <Field label="服务器名称" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} S={S} />
-              <Field label="设备编号" value={draft.gpuIds} onChange={(e) => setDraft({ ...draft, gpuIds: e.target.value })} placeholder="例如: 0,1,2,3" S={S} />
-              <Field label="工作目录" value={draft.workDir} onChange={(e) => setDraft({ ...draft, workDir: e.target.value })} S={S} />
-            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 16 }}>
+              {/* Row 1, Col 2: 工作目录 */}
+              <Field label="工作目录" value={draft.workDir} onChange={(e) => setDraft({ ...draft, workDir: e.target.value })} S={S} />
+
+              {/* Row 1-2, Col 3: 设备编号（跨两行） */}
+              <div style={{ gridRow: "1 / 3", gridColumn: "3" }}>
+                <div style={{ color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b", fontSize: 13, marginBottom: 6 }}>设备编号</div>
+                <GpuIdSelector
+                  value={draft.gpuIds}
+                  visibleIds={envInfo.gpuInfo?.visibleIds || []}
+                  onChange={(val) => setDraft({ ...draft, gpuIds: val })}
+                  placeholder={envInfo.gpuInfo?.visibleIds?.length ? "选择 GPU 编号" : "请先完成连通性检测"}
+                  S={S}
+                />
+              </div>
+
+              {/* Row 2, Col 1: 连接方式 */}
               <SegmentedOptions
                 label="连接方式"
                 options={accessTypes}
@@ -913,14 +729,46 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
                 onChange={(accessType) => setDraft({ ...draft, accessType })}
                 S={S}
               />
-              <SegmentedOptions
-                label="微调工具"
-                options={availableTools.map((tool) => ({ key: tool, label: tool }))}
-                value={draft.finetuneToolName}
-                onChange={(finetuneToolName) => setDraft({ ...draft, finetuneToolName })}
-                S={S}
-              />
-              <Field label="微调工具容器名" value={draft.finetuneToolContainerName} onChange={(e) => setDraft({ ...draft, finetuneToolContainerName: e.target.value })} placeholder="例如: llamafactory" S={S} />
+
+              {/* Row 2, Col 2: 微调工具 + 容器名（紧贴） */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: S.page.color, marginBottom: 8 }}>微调工具</div>
+                <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
+                  <button
+                    onClick={() => {
+                      const currentIdx = availableTools.indexOf(draft.finetuneToolName);
+                      const nextIdx = (currentIdx + 1) % availableTools.length;
+                      setDraft({ ...draft, finetuneToolName: availableTools[nextIdx] });
+                    }}
+                    style={{
+                      padding: "8px 16px",
+                      border: "1px solid #667eea",
+                      borderRadius: "8px 0 0 8px",
+                      background: S.page.background === "#0a0a0a" ? "#667eea20" : "#667eea10",
+                      color: "#667eea",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      whiteSpace: "nowrap",
+                      borderRight: "none",
+                    }}
+                  >
+                    {draft.finetuneToolName || "LLaMA-Factory"}
+                  </button>
+                  <input
+                    value={draft.finetuneToolContainerName}
+                    onChange={(e) => setDraft({ ...draft, finetuneToolContainerName: e.target.value })}
+                    placeholder="请填写容器名"
+                    style={{
+                      ...S.input,
+                      borderRadius: "0 8px 8px 0",
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {draft.accessType === "jupyter" ? (
@@ -1034,7 +882,7 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
                       ) : (
                         <div>
                           <DetailRow label="显卡型号" value={gi.model || "-"} loading={hwLoading} S={S} />
-                          <DetailRow label="可见编号" value={(gi.visibleIds || []).join(", ") || "-"} loading={hwLoading} S={S} />
+                          <DetailRow label="可见编号" value={(gi.visibleIds || []).join(",") || "-"} loading={hwLoading} S={S} />
                           <DetailRow label="驱动版本" value={gi.driver || "-"} loading={hwLoading} S={S} />
                           <DetailRow label="CUDA 版本" value={gi.cuda || "-"} loading={hwLoading} S={S} />
                         </div>

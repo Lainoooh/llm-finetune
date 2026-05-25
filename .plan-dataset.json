@@ -1,0 +1,163 @@
+{
+  "project": "数据集管理与预览功能",
+  "todos": [
+    {
+      "id": 1,
+      "group": "后端",
+      "task": "实现 DatasetService 数据集管理服务",
+      "files": ["backend/app/services/dataset_service.py"],
+      "details": [
+        "读取远端 dataset_info.json",
+        "合并更新 dataset 配置",
+        "写入远端 dataset_info.json",
+        "推断列映射（前5行分析）",
+        "获取文件行数",
+        "分页读取文件内容"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "group": "后端",
+      "task": "实现 FileUploadService 文件上传服务",
+      "files": ["backend/app/services/file_upload_service.py"],
+      "details": [
+        "SSH SFTP 上传（asyncssh）",
+        "Jupyter Contents API 上传",
+        "Base64 分块上传兜底",
+        "进度回调机制",
+        "MD5 校验"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "group": "后端",
+      "task": "实现 API 路由",
+      "files": ["backend/app/api/routes/datasets.py"],
+      "details": [
+        "GET /api/subtasks/{code}/datasets",
+        "POST /api/subtasks/{code}/upload",
+        "PATCH /api/subtasks/{code}/datasets/{name}",
+        "POST /api/subtasks/{code}/datasets/{name}/sync",
+        "POST /api/subtasks/{code}/datasets/sync",
+        "GET /api/subtasks/{code}/datasets/{name}/preview",
+        "WebSocket /ws/upload/{code}"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "group": "前端",
+      "task": "实现 DatasetTab 容器组件",
+      "files": ["frontend/src/components/dataset/DatasetTab.jsx"],
+      "details": [
+        "管理所有数据集状态",
+        "协调子组件通信",
+        "WebSocket 进度监听"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "group": "前端",
+      "task": "实现 UploadSection 上传组件",
+      "files": ["frontend/src/components/dataset/UploadSection.jsx"],
+      "details": [
+        "拖拽上传区域",
+        "文件选择器",
+        "上传进度条",
+        "双模式入口（本地/样本库预留）"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "group": "前端",
+      "task": "实现 SyncStatusPanel 同步状态面板",
+      "files": ["frontend/src/components/dataset/SyncStatusPanel.jsx"],
+      "details": [
+        "数据集列表展示",
+        "每行同步状态（✅🔄⚠️❌）",
+        "每行操作按钮（编辑/预览/同步）",
+        "手动同步全部按钮"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "group": "前端",
+      "task": "实现 DatasetConfigForm 配置表单",
+      "files": ["frontend/src/components/dataset/DatasetConfigForm.jsx"],
+      "details": [
+        "dataset 名称输入",
+        "格式选择（alpaca/sharegpt）",
+        "列映射配置",
+        "保存并同步按钮"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "group": "前端",
+      "task": "实现 DatasetSelector 数据集选择器",
+      "files": ["frontend/src/components/dataset/DatasetSelector.jsx"],
+      "details": [
+        "训练集/评测集下拉",
+        "数据集列表展示"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 9,
+      "group": "前端",
+      "task": "实现 DatasetPreviewModal 预览弹窗",
+      "files": ["frontend/src/components/dataset/DatasetPreviewModal.jsx"],
+      "details": [
+        "左右分栏布局",
+        "左侧数据集列表",
+        "右侧分页数据预览",
+        "页码跳转"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 10,
+      "group": "前端",
+      "task": "实现 API 客户端",
+      "files": ["frontend/src/api/datasets.js"],
+      "details": [
+        "fetchDatasets",
+        "uploadFile",
+        "updateDatasetConfig",
+        "syncDataset",
+        "syncAllDatasets",
+        "fetchPreview"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 11,
+      "group": "前端",
+      "task": "集成到 SubtaskPage",
+      "files": ["frontend/src/pages/SubtaskPage.jsx"],
+      "details": [
+        "替换现有 dataset tab 内容",
+        "引入 DatasetTab 组件"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 12,
+      "group": "测试",
+      "task": "自测试",
+      "details": [
+        "后端单元测试",
+        "前端组件测试",
+        "集成测试",
+        "修复问题"
+      ],
+      "status": "pending"
+    }
+  ]
+}

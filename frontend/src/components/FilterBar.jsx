@@ -31,14 +31,78 @@ export function FilterBar({
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column',
+      alignItems: 'center',
       gap: 12,
-      padding: '16px 0',
+      padding: '12px 0',
       borderBottom: `1px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
       marginBottom: 16,
     }}>
-      {/* 第一行：搜索框 */}
-      <div style={{ position: 'relative', width: '100%' }}>
+      {/* 左侧：状态筛选 */}
+      {statusOptions.length > 0 && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {statusOptions.map(({ key, label, count, color }) => (
+            <button
+              key={key}
+              onClick={() => onStatusFilterChange(key)}
+              style={{
+                padding: '7px 14px',
+                border: statusFilter === key
+                  ? `2px solid ${color || '#667eea'}`
+                  : `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
+                borderRadius: 8,
+                background: statusFilter === key
+                  ? (S.page.background === "#0a0a0a" ? `${color || '#667eea'}15` : `${color || '#667eea'}08`)
+                  : (S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff"),
+                color: statusFilter === key ? (color || '#667eea') : S.page.color,
+                fontSize: 13,
+                fontWeight: statusFilter === key ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (statusFilter !== key) {
+                  e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#4b5563" : "#cbd5e1";
+                  e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#111827" : "#f8fafc";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (statusFilter !== key) {
+                  e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0";
+                  e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff";
+                }
+              }}
+            >
+              {label}
+              {count !== undefined && (
+                <span style={{
+                  padding: '2px 7px',
+                  borderRadius: 5,
+                  background: statusFilter === key
+                    ? (color || '#667eea')
+                    : (S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb"),
+                  color: statusFilter === key
+                    ? '#fff'
+                    : (S.page.background === "#0a0a0a" ? "#d1d5db" : "#6b7280"),
+                  fontSize: 11,
+                  fontWeight: 700,
+                  minWidth: 20,
+                  textAlign: 'center',
+                }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 右侧：搜索框 */}
+      <div style={{ position: 'relative', width: 280, marginLeft: 'auto' }}>
         <div style={{
           position: 'absolute',
           left: 14,
@@ -116,82 +180,8 @@ export function FilterBar({
         )}
       </div>
 
-      {/* 第二行：筛选器 */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* 状态标签按钮 */}
-        {statusOptions.length > 0 && (
-          <div style={{ display: 'flex', gap: 6 }}>
-            {statusOptions.map(({ key, label, count, color }) => (
-              <button
-                key={key}
-                onClick={() => onStatusFilterChange(key)}
-                style={{
-                  padding: '7px 14px',
-                  border: statusFilter === key
-                    ? `2px solid ${color || '#667eea'}`
-                    : `2px solid ${S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0"}`,
-                  borderRadius: 8,
-                  background: statusFilter === key
-                    ? (S.page.background === "#0a0a0a" ? `${color || '#667eea'}15` : `${color || '#667eea'}08`)
-                    : (S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff"),
-                  color: statusFilter === key ? (color || '#667eea') : S.page.color,
-                  fontSize: 13,
-                  fontWeight: statusFilter === key ? 600 : 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={(e) => {
-                  if (statusFilter !== key) {
-                    e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#4b5563" : "#cbd5e1";
-                    e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#111827" : "#f8fafc";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (statusFilter !== key) {
-                    e.currentTarget.style.borderColor = S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0";
-                    e.currentTarget.style.background = S.page.background === "#0a0a0a" ? "#1f2937" : "#ffffff";
-                  }
-                }}
-              >
-                {label}
-                {count !== undefined && (
-                  <span style={{
-                    padding: '2px 7px',
-                    borderRadius: 5,
-                    background: statusFilter === key
-                      ? (color || '#667eea')
-                      : (S.page.background === "#0a0a0a" ? "#374151" : "#e5e7eb"),
-                    color: statusFilter === key
-                      ? '#fff'
-                      : (S.page.background === "#0a0a0a" ? "#d1d5db" : "#6b7280"),
-                    fontSize: 11,
-                    fontWeight: 700,
-                    minWidth: 20,
-                    textAlign: 'center',
-                  }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 分隔线 */}
-        {statusOptions.length > 0 && dropdownFilters.length > 0 && (
-          <div style={{
-            width: 1,
-            height: 24,
-            background: S.page.background === "#0a0a0a" ? "#374151" : "#e2e8f0",
-          }} />
-        )}
-
-        {/* 下拉筛选器 */}
-        {dropdownFilters.map((filter) => (
+      {/* 下拉筛选器 */}
+      {dropdownFilters.map((filter) => (
           <div
             key={filter.key}
             style={{ position: 'relative' }}
@@ -358,8 +348,7 @@ export function FilterBar({
               </div>
             )}
           </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }

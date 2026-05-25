@@ -68,7 +68,6 @@ def execution_to_out(run) -> ExecutionOut:
         scriptKey=run.script_key,
         stdout=run.stdout,
         stderr=run.stderr,
-        exitCode=run.exit_code,
         errorMessage=run.error_message,
         createdAt=run.created_at.isoformat() if run.created_at else None,
         startedAt=run.started_at.isoformat() if run.started_at else None,

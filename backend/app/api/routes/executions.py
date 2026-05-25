@@ -26,7 +26,6 @@ def execution_to_out(run: ExecutionRun) -> ExecutionOut:
         scriptKey=run.script_key,
         stdout=run.stdout,
         stderr=run.stderr,
-        exitCode=run.exit_code,
         errorMessage=run.error_message,
         createdAt=run.created_at.isoformat() if run.created_at else None,
         startedAt=run.started_at.isoformat() if run.started_at else None,
@@ -78,10 +77,9 @@ async def create_execution(payload: ExecutionCreateIn, db: Session = Depends(get
 
     try:
         result = await remote_executor.run_for_server(server, rendered, timeout_ms=payload.timeoutMs)
-        run.status = "succeeded" if result.exit_code == 0 else "failed"
+        run.status = "succeeded"
         run.stdout = result.stdout
         run.stderr = result.stderr
-        run.exit_code = result.exit_code
         run.finished_at = datetime.utcnow()
     except Exception as exc:
         run.status = "failed"

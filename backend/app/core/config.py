@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     jupyter_session_ready_timeout_ms: int = 20_000
     snowflake_node_id: int = 1
     enable_debug_remote_run: bool = False
+    pool_min_size: int = 5
+    pool_max_size: int = 20
+    pool_health_check_interval_s: int = 60
+    pool_idle_timeout_s: int = 1800
+    pool_queue_timeout_s: int = 300
 
     model_config = SettingsConfigDict(
         env_file=".env.local",

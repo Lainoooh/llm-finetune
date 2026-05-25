@@ -479,7 +479,6 @@ def evaluate_subtask(db: Session, subtask: FinetuneSubtask) -> ExecutionRun:
         script_key="llamafactory.eval",
         rendered_script=f"llamafactory-cli eval {subtask.output_dir}/configs/eval.yaml",
         stdout='{"score": 80.0}',
-        exit_code=0,
         started_at=datetime.utcnow(),
         finished_at=datetime.utcnow(),
     )

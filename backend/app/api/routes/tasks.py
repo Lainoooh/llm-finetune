@@ -65,7 +65,6 @@ def execution_to_out(run) -> ExecutionOut:
         scriptKey=run.script_key,
         stdout=run.stdout,
         stderr=run.stderr,
-        exitCode=run.exit_code,
         errorMessage=run.error_message,
         createdAt=run.created_at.isoformat() if run.created_at else None,
         startedAt=run.started_at.isoformat() if run.started_at else None,
@@ -232,7 +231,6 @@ def post_subtask_sync(subtask_code: str, db: Session = Depends(get_db)):
             script_key="subtask.sync",
             rendered_script=f"write train/eval yaml and dataset_info into {subtask.output_dir}",
             stdout="配置同步记录已保存；真实远程写入将通过脚本队列执行。",
-            exit_code=0,
             started_at=datetime.utcnow(),
             finished_at=datetime.utcnow(),
         )

@@ -74,7 +74,28 @@ def server_to_out(server: ServerProfile) -> ServerOut:
         tools = json.loads(server.finetune_tools_json or "{}")
     except Exception:
         tools = {}
+    try:
+        gpu_info = json.loads(server.gpu_json or "{}")
+    except Exception:
+        gpu_info = {}
+    try:
+        hardware_info = json.loads(server.hardware_json or "{}")
+    except Exception:
+        hardware_info = {}
+    try:
+        finetune_env_info = json.loads(server.finetune_env_json or "{}")
+    except Exception:
+        finetune_env_info = {}
+
     accelerator_count = _accelerator_count(server.gpu, server.gpu_ids)
+
+    cuda_version = gpu_info.get("cuda", "")
+    if not cuda_version and finetune_env_info.get("pytorch"):
+        cuda_version = _extract_cuda_from_pytorch(finetune_env_info["pytorch"])
+
+    if cuda_version and not gpu_info.get("cuda"):
+        gpu_info = {**gpu_info, "cuda": cuda_version}
+
     return ServerOut(
         id=server.public_id,
         name=server.name,
@@ -105,6 +126,9 @@ def server_to_out(server: ServerProfile) -> ServerOut:
         diskUsed=server.disk_used,
         diskTotal=server.disk_total,
         lastError=server.last_error,
+        gpuInfo=gpu_info,
+        hardwareInfo=hardware_info,
+        finetuneEnvInfo=finetune_env_info,
     )
 
 
@@ -163,6 +187,27 @@ def create_server(db: Session, payload: ServerCreateIn) -> ServerProfile:
     db.add(server)
     db.commit()
     db.refresh(server)
+
+    # 如果有 draft 探测结果，"领养"到新服务器
+    if payload.probeCode:
+        task = db.scalar(
+            select(ServerProbeTask).where(
+                ServerProbeTask.probe_code == payload.probeCode,
+                ServerProbeTask.target_type == "draft",
+            )
+        )
+        if task:
+            items = list(
+                db.scalars(
+                    select(ServerProbeItem).where(ServerProbeItem.probe_task_id == task.id)
+                )
+            )
+            _apply_successful_probe_items(server, items)
+            task.server_profile_id = server.id
+            task.target_type = "server"
+            db.commit()
+            db.refresh(server)
+
     return server
 
 
@@ -276,6 +321,60 @@ def _format_disk(disk: dict[str, Any] | None) -> tuple[str, float | None, float 
     return f"{used_tb:.1f}TB / {size_tb:.1f}TB", round(used_tb, 2), round(size_tb, 2)
 
 
+def _format_bytes_human(byte_value: int | float) -> str:
+    if not byte_value or byte_value <= 0:
+        return "-"
+    val = float(byte_value)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if val < 1024:
+            return f"{val:.0f}{unit}" if unit in ("B", "KB", "MB") else f"{val:.1f}{unit}"
+        val /= 1024
+    return f"{val:.1f}PB"
+
+
+def _format_disk_structured(disk: dict[str, Any] | None) -> dict[str, Any]:
+    if not disk:
+        return {"used": "-", "total": "-", "percent": 0}
+    size = float(disk.get("size") or 0)
+    used = float(disk.get("used") or 0)
+    if size <= 0:
+        return {"used": "-", "total": "-", "percent": 0}
+    size_tb = size / 1024**4
+    used_tb = used / 1024**4
+    percent = round(used / size * 100) if size else 0
+    return {
+        "used": f"{used_tb:.1f}TB",
+        "total": f"{size_tb:.1f}TB",
+        "percent": percent,
+    }
+
+
+def _format_memory_structured(memory: dict[str, Any] | None) -> dict[str, Any]:
+    if not memory:
+        return {"used": "-", "total": "-", "percent": 0}
+    total = int(memory.get("total") or 0)
+    used = int(memory.get("used") or 0)
+    percent = int(memory.get("percent") or 0)
+    if not percent and total:
+        percent = round(used / total * 100)
+    return {
+        "used": _format_bytes_human(used),
+        "total": _format_bytes_human(total),
+        "percent": percent,
+    }
+
+
+def _extract_cuda_from_pytorch(pytorch_version: str) -> str:
+    import re as _re
+    match = _re.search(r"\+cu(\d+)", str(pytorch_version or ""))
+    if match:
+        digits = match.group(1)
+        if len(digits) >= 3:
+            return f"{digits[0]}.{digits[1:]}"
+        return digits
+    return ""
+
+
 def _format_accelerator_runtime(raw_runtime: Any, torch_info: dict[str, Any]) -> str:
     runtime = str(raw_runtime or "").strip()
     cuda_version = str(torch_info.get("cuda") or "").strip()
@@ -387,9 +486,45 @@ def _endpoint_from_target(target: ProbeTarget) -> DraftEndpointConfig:
 def _normalize_hardware(raw: dict[str, Any], target: ProbeTarget) -> dict[str, Any]:
     temp = _profile_from_target(target)
     disk_text, disk_used, disk_total = _format_disk(raw.get("disk"))
-    gpu = _parse_gpu_summary(str(raw.get("accelerators_csv") or raw.get("gpus_csv") or ""), target.gpu_ids)
+    gpu_csv = str(raw.get("accelerators_csv") or raw.get("gpus_csv") or "")
+    gpu = _parse_gpu_summary(gpu_csv, target.gpu_ids)
     driver = str(raw.get("accelerator_driver") or raw.get("driver") or "-")
+
+    gpu_model = str(raw.get("gpu_model") or "-")
+    total_gpu_count = int(raw.get("total_gpu_count") or 0)
+    all_gpu_ids = raw.get("all_gpu_ids") or []
+    if isinstance(all_gpu_ids, str):
+        all_gpu_ids = [x.strip() for x in all_gpu_ids.split(",") if x.strip()]
+
+    cuda_from_nvidia = str(raw.get("cuda_version") or "").strip()
+
+    gpu_info = {
+        "model": gpu_model if gpu_model != "-" else gpu,
+        "physicalCount": total_gpu_count,
+        "visibleIds": all_gpu_ids,
+        "selectedIds": target.gpu_ids,
+        "driver": driver,
+        "cuda": cuda_from_nvidia,
+    }
+
+    cpu_raw = raw.get("cpu") or {}
+    memory_raw = raw.get("memory")
+    disk_structured = _format_disk_structured(raw.get("disk"))
+    memory_structured = _format_memory_structured(memory_raw)
+
+    hardware_info = {
+        "cpu": {
+            "model": str(cpu_raw.get("model") or "-"),
+            "cores": int(cpu_raw.get("cores") or 0),
+            "threads": int(cpu_raw.get("threads") or 0),
+        },
+        "memory": memory_structured,
+        "disk": disk_structured,
+    }
+
     return {
+        "gpuInfo": gpu_info,
+        "hardwareInfo": hardware_info,
         "gpu": gpu,
         "gpuIds": target.gpu_ids,
         "accelerator": gpu,
@@ -415,6 +550,7 @@ def _normalize_finetune_env(raw: dict[str, Any], target: ProbeTarget) -> tuple[d
         return {
             "containerName": raw.get("container_name") or target.finetune_tool_container_name,
             "finetuneToolName": target.finetune_tool_name,
+            "finetuneEnvInfo": {},
             "timings": raw.get("timings") or {},
         }, str(raw.get("error") or "微调环境探测失败")
     tool_version = str(raw.get("finetune_tool_version") or "-")
@@ -422,7 +558,16 @@ def _normalize_finetune_env(raw: dict[str, Any], target: ProbeTarget) -> tuple[d
     pytorch = str(raw.get("pytorch") or "-")
     transformers = str(raw.get("transformers") or "-")
     env_summary = f"Python {python_version} / PyTorch {pytorch} / Transformers {transformers}"
+
+    finetune_env_info = {
+        "python": python_version,
+        "pytorch": pytorch,
+        "transformers": transformers,
+        "llamafactory": tool_version,
+    }
+
     return {
+        "finetuneEnvInfo": finetune_env_info,
         "containerName": raw.get("container_name") or target.finetune_tool_container_name,
         "python": python_version,
         "pytorch": pytorch,
@@ -472,7 +617,6 @@ async def probe_server(db: Session, server: ServerProfile) -> tuple[ServerProfil
         run.status = "succeeded"
         run.stdout = result.stdout
         run.stderr = result.stderr
-        run.exit_code = result.exit_code
         run.finished_at = datetime.utcnow()
         db.commit()
         return server, raw, run
@@ -574,10 +718,13 @@ def probe_task_to_out(db: Session, task: ServerProbeTask) -> ProbeTaskOut:
                 server.diskUsed = data.get("diskUsed", server.diskUsed)
                 server.diskTotal = data.get("diskTotal", server.diskTotal)
                 server.status = "online"
+                server.gpuInfo = data.get("gpuInfo", server.gpuInfo)
+                server.hardwareInfo = data.get("hardwareInfo", server.hardwareInfo)
             elif item.item_type == "finetuneEnv":
                 server.torch = data.get("torch", server.torch)
                 server.aiFramework = data.get("aiFramework", server.aiFramework)
                 server.finetuneTools = data.get("finetuneTools", server.finetuneTools)
+                server.finetuneEnvInfo = data.get("finetuneEnvInfo", server.finetuneEnvInfo)
     by_type = {item.item_type: _item_to_out(item) for item in items}
     by_type.setdefault("hardware", ProbeItemOut())
     by_type.setdefault("finetuneEnv", ProbeItemOut())
@@ -710,6 +857,10 @@ def _apply_successful_probe_items(server: ServerProfile, items: list[ServerProbe
         except Exception:
             data = {}
         if item.item_type == "hardware":
+            gpu_info = data.get("gpuInfo", {})
+            hardware_info = data.get("hardwareInfo", {})
+            server.gpu_json = json.dumps(gpu_info, ensure_ascii=False) if gpu_info else "{}"
+            server.hardware_json = json.dumps(hardware_info, ensure_ascii=False) if hardware_info else "{}"
             server.gpu = data.get("gpu", server.gpu)
             server.cuda = data.get("acceleratorRuntime", server.cuda)
             server.disk = data.get("disk", server.disk)
@@ -719,6 +870,8 @@ def _apply_successful_probe_items(server: ServerProfile, items: list[ServerProbe
             server.last_error = ""
             server.last_probe_at = datetime.utcnow()
         elif item.item_type == "finetuneEnv":
+            finetune_env_info = data.get("finetuneEnvInfo", {})
+            server.finetune_env_json = json.dumps(finetune_env_info, ensure_ascii=False) if finetune_env_info else "{}"
             server.torch = data.get("torch", server.torch)
             tools = data.get("finetuneTools")
             if isinstance(tools, dict):

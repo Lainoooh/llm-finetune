@@ -44,5 +44,11 @@ def _ensure_sqlite_columns() -> None:
             connection.execute(text("ALTER TABLE server_profiles ADD COLUMN ssh_key TEXT DEFAULT ''"))
         if "finetune_tool_container_name" not in server_columns:
             connection.execute(text("ALTER TABLE server_profiles ADD COLUMN finetune_tool_container_name VARCHAR(200) DEFAULT ''"))
+        if "gpu_json" not in server_columns:
+            connection.execute(text("ALTER TABLE server_profiles ADD COLUMN gpu_json TEXT DEFAULT '{}'"))
+        if "hardware_json" not in server_columns:
+            connection.execute(text("ALTER TABLE server_profiles ADD COLUMN hardware_json TEXT DEFAULT '{}'"))
+        if "finetune_env_json" not in server_columns:
+            connection.execute(text("ALTER TABLE server_profiles ADD COLUMN finetune_env_json TEXT DEFAULT '{}'"))
         if "run_code" not in execution_columns:
             connection.execute(text("ALTER TABLE execution_runs ADD COLUMN run_code VARCHAR(80) DEFAULT ''"))

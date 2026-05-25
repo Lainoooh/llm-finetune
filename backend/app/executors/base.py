@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 @dataclass
 class RemoteExecutionResult:
-    exit_code: int | None
     stdout: str
     stderr: str = ""
     raw_output: str = ""

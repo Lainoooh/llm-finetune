@@ -26,16 +26,14 @@ async def run_execution_background(run_code: str) -> None:
 
     try:
         result = await remote_executor.run_for_server(server, run.rendered_script, timeout_ms=120_000)
-        status = "succeeded" if result.exit_code == 0 else "failed"
+        status = "succeeded"
         stdout = result.stdout
         stderr = result.stderr
-        exit_code = result.exit_code
         error_message = ""
     except Exception as exc:
         status = "failed"
         stdout = ""
         stderr = ""
-        exit_code = None
         error_message = str(exc)
 
     with SessionLocal() as db:
@@ -45,7 +43,6 @@ async def run_execution_background(run_code: str) -> None:
         run.status = status
         run.stdout = stdout
         run.stderr = stderr
-        run.exit_code = exit_code
         run.error_message = error_message
         run.finished_at = datetime.utcnow()
         if run.target_type == "subtask" and run.target_id:

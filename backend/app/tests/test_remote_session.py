@@ -8,9 +8,8 @@ from app.executors.transport import RemoteFrame
 
 
 class FakeTransport:
-    def __init__(self, exit_code=0, drop_done=False):
+    def __init__(self, drop_done=False):
         self.key = "fake:test"
-        self.exit_code = exit_code
         self.drop_done = drop_done
         self.is_connected = False
         self.closed = False
@@ -28,7 +27,7 @@ class FakeTransport:
             return
         done = re.search(r"__LLMFT_DONE_[a-f0-9]+_\d+__", payload)
         if done and not self.drop_done:
-            self.frames.append(RemoteFrame(kind="stdout", content=f"script output\n{done.group(0)}:{self.exit_code}\n"))
+            self.frames.append(RemoteFrame(kind="stdout", content=f"script output\n{done.group(0)}:0\n"))
 
     async def recv(self):
         while not self.frames:
@@ -43,16 +42,15 @@ class FakeTransport:
 
 
 @pytest.mark.asyncio
-async def test_queued_session_wraps_marker_and_returns_exit_code():
-    transport = FakeTransport(exit_code=7)
+async def test_queued_session_wraps_marker_and_returns_result():
+    transport = FakeTransport()
     session = QueuedRemoteSession(transport)
 
-    result = await session.run_script("exit 7", timeout_ms=1000)
+    result = await session.run_script("echo hello", timeout_ms=1000)
 
-    assert result.exit_code == 7
     assert "script output" in result.stdout
     assert result.generation == 1
-    assert len(transport.sent) == 2
+    assert len(transport.sent) == 1
 
 
 @pytest.mark.asyncio

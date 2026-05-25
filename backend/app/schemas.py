@@ -35,6 +35,9 @@ class ServerOut(BaseModel):
     diskUsed: Optional[float] = None
     diskTotal: Optional[float] = None
     lastError: str = ""
+    gpuInfo: dict[str, Any] = Field(default_factory=dict)
+    hardwareInfo: dict[str, Any] = Field(default_factory=dict)
+    finetuneEnvInfo: dict[str, Any] = Field(default_factory=dict)
 
 
 class ServersListOut(BaseModel):
@@ -102,7 +105,6 @@ class DebugRemoteRunIn(BaseModel):
     timeoutMs: Optional[int] = None
 
 class DebugRemoteRunOut(BaseModel):
-    exitCode: Optional[int]
     stdout: str
     stderr: str = ""
     generation: int
@@ -122,6 +124,7 @@ class ServerCreateIn(BaseModel):
     finetuneToolContainerName: str = ""
     jupyterBaseUrl: Optional[str] = None
     token: Optional[str] = None
+    probeCode: Optional[str] = None
 
 
 class ServerUpdateIn(BaseModel):
@@ -302,7 +305,6 @@ class ExecutionOut(BaseModel):
     scriptKey: str = ""
     stdout: str = ""
     stderr: str = ""
-    exitCode: Optional[int] = None
     errorMessage: str = ""
     createdAt: Optional[str] = None
     startedAt: Optional[str] = None

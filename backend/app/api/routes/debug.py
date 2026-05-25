@@ -21,7 +21,6 @@ async def remote_run(payload: DebugRemoteRunIn):
         timeout_ms=payload.timeoutMs,
     )
     return DebugRemoteRunOut(
-        exitCode=result.exit_code,
         stdout=result.stdout,
         stderr=result.stderr,
         generation=result.generation,

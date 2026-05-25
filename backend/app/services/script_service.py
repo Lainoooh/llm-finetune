@@ -47,20 +47,41 @@ def disk(path):
 def split_ids(value):
     return [item.strip() for item in value.split(",") if item.strip()]
 
+def detect_cpu():
+    model = run("grep 'model name' /proc/cpuinfo 2>/dev/null | head -1 | cut -d: -f2", timeout=3, name="cpu_model")
+    cores = run("grep -c ^processor /proc/cpuinfo 2>/dev/null", timeout=3, name="cpu_cores")
+    threads = run("nproc 2>/dev/null", timeout=3, name="cpu_threads")
+    return {
+        "model": model.strip() or "-",
+        "cores": int(cores) if cores.isdigit() else 0,
+        "threads": int(threads) if threads.isdigit() else 0,
+    }
+
+def detect_memory():
+    out = run("free -b 2>/dev/null | grep Mem", timeout=3, name="memory")
+    parts = out.split()
+    if len(parts) >= 3:
+        try:
+            total = int(parts[1])
+            used = int(parts[2])
+            return {"total": total, "used": used, "percent": round(used / total * 100) if total else 0}
+        except (ValueError, ZeroDivisionError):
+            pass
+    return None
+
 def detect_accelerators():
     nvidia_csv = run("nvidia-smi --query-gpu=index,name,uuid,memory.total,memory.used --format=csv,noheader,nounits", timeout=6, name="nvidia_smi_query")
     if nvidia_csv:
+        driver = run("nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits | head -1", timeout=4, name="nvidia_driver")
+        cuda_ver = run("nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits > /dev/null && nvidia-smi | grep -oP 'CUDA Version:\\s+\\K[\\d.]+'", timeout=5, name="cuda_version")
         return {
             "vendor": "nvidia",
             "runtime": "cuda",
-            "driver": run("nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits | head -1", timeout=4, name="nvidia_driver"),
+            "driver": driver,
+            "cuda_version": cuda_ver,
             "csv": nvidia_csv,
         }
-    # Vendor hooks:
-    # - Huawei Ascend/NPU can be adapted here via npu-smi and torch_npu checks.
-    # - Alibaba PPU or other accelerators can return the same csv contract:
-    #   index,name,uuid,memory.total,memory.used
-    return {"vendor": "unknown", "runtime": "-", "driver": "-", "csv": ""}
+    return {"vendor": "unknown", "runtime": "-", "driver": "-", "cuda_version": "", "csv": ""}
 
 # 创建工作目录
 try:
@@ -69,12 +90,16 @@ except Exception:
     pass
 
 accelerator = detect_accelerators()
-accelerator_ids = split_ids(GPU_IDS)
-if accelerator_ids:
-    accelerator_count = len(accelerator_ids)
-else:
-    csv_lines = [line for line in accelerator["csv"].splitlines() if line.strip()]
-    accelerator_count = len(csv_lines)
+cpu_info = detect_cpu()
+memory_info = detect_memory()
+
+all_gpu_lines = [line for line in accelerator["csv"].splitlines() if line.strip()]
+all_gpu_ids = [line.split(",")[0].strip() for line in all_gpu_lines]
+total_gpu_count = len(all_gpu_lines)
+gpu_model = all_gpu_lines[0].split(",")[1].strip() if all_gpu_lines else "-"
+
+selected_ids = split_ids(GPU_IDS)
+selected_count = len(selected_ids) if selected_ids else total_gpu_count
 
 payload = {
     "hostname": run("hostname", timeout=2, name="hostname"),
@@ -90,7 +115,13 @@ payload = {
     "accelerator_driver": accelerator["driver"],
     "accelerators_csv": accelerator["csv"],
     "accelerator_ids": GPU_IDS,
-    "accelerator_count": accelerator_count,
+    "accelerator_count": selected_count,
+    "total_gpu_count": total_gpu_count,
+    "all_gpu_ids": all_gpu_ids,
+    "gpu_model": gpu_model,
+    "cuda_version": accelerator.get("cuda_version", ""),
+    "cpu": cpu_info,
+    "memory": memory_info,
     "disk": disk(WORK_DIR if os.path.exists(WORK_DIR) else "/"),
     "timings": timings,
 }
@@ -101,7 +132,7 @@ PY'''
 
 
 SERVER_FINETUNE_ENV_PROBE_TEMPLATE = r'''python3 - <<'PY'
-import json, os, shlex, subprocess, time
+import json, os, re, shlex, subprocess, time
 
 # 变量将在这里注入
 
@@ -162,13 +193,15 @@ try:
 except Exception:
     env_info = {}
 
-tool_version = run(f"docker exec {shlex.quote(container)} bash -c 'llamafactory-cli version 2>/dev/null || python3 -m llamafactory.cli version 2>/dev/null'", timeout=10, name="finetune_tool")
+tool_version_raw = run(f"docker exec {shlex.quote(container)} bash -c 'llamafactory-cli version 2>/dev/null || python3 -m llamafactory.cli version 2>/dev/null'", timeout=10, name="finetune_tool")
+_version_match = re.search(r'version\s+([\d.]+(?:\.(?:dev|post|a|b|rc)\d+)?)', tool_version_raw, re.IGNORECASE)
+tool_version = _version_match.group(1) if _version_match else (tool_version_raw.strip() if tool_version_raw else "-")
 
 emit({
     "ok": True,
     "container_name": container,
     "finetune_tool_name": tool_name,
-    "finetune_tool_version": tool_version or "-",
+    "finetune_tool_version": tool_version,
     "python": env_info.get("python", "-"),
     "pytorch": env_info.get("pytorch", "-"),
     "transformers": env_info.get("transformers", "-"),
@@ -357,7 +390,6 @@ def create_test_run(db: Session, script: ScriptTemplate, rendered: str) -> Execu
         script_version=script.version,
         rendered_script=rendered,
         stdout="脚本测试已创建；当前为本地 fake executor 验证结果。",
-        exit_code=0,
     )
     db.add(run)
     db.commit()

@@ -51,7 +51,6 @@ class QueuedRemoteSession:
                         json_output = self._extract_json(output)
 
                         return RemoteExecutionResult(
-                            exit_code=0,
                             stdout=json_output,
                             stderr=clean_terminal_output(stderr),
                             raw_output=output,

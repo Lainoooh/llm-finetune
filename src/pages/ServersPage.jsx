@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "../components/Card";
 import { SectionTitle } from "../components/SectionTitle";
 import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
 import { Field } from "../components/Field";
-import { Info } from "../components/Info";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import Spinner from "../components/Spinner";
 import { Pagination } from "../components/Pagination";
@@ -42,8 +41,152 @@ function SegmentedOptions({ label, options, value, onChange, S }) {
   );
 }
 
+function IconServer({ size = 18, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="8" x="2" y="2" rx="2" ry="2" /><rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+      <line x1="6" x2="6.01" y1="6" y2="6" /><line x1="6" x2="6.01" y1="18" y2="18" />
+    </svg>
+  );
+}
+function IconCpu({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="16" height="16" x="4" y="4" rx="2" /><rect width="6" height="6" x="9" y="9" rx="1" />
+      <path d="M15 2v2" /><path d="M15 20v2" /><path d="M2 15h2" /><path d="M2 9h2" /><path d="M20 15h2" /><path d="M20 9h2" /><path d="M9 2v2" /><path d="M9 20v2" />
+    </svg>
+  );
+}
+function IconZap({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+    </svg>
+  );
+}
+function IconLayers({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+      <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" /><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
+    </svg>
+  );
+}
+function IconRefreshCw({ size = 14, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" />
+    </svg>
+  );
+}
+function IconCheckCircle({ size = 14, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" />
+    </svg>
+  );
+}
+
+function EnvBadge({ tone = "blue", children, S }) {
+  const ec = S.envCards;
+  const tones = {
+    green: { bg: ec.badgeGreenBg, text: ec.badgeGreenText, border: ec.badgeGreenBorder },
+    blue: { bg: ec.badgeBlueBg, text: ec.badgeBlueText, border: ec.badgeBlueBorder },
+    amber: { bg: ec.badgeAmberBg, text: ec.badgeAmberText, border: ec.badgeAmberBorder },
+    slate: { bg: ec.badgeSlateBg, text: ec.badgeSlateText, border: ec.badgeSlateBorder },
+  };
+  const t = tones[tone] || tones.blue;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", borderRadius: 10, border: `1px solid ${t.border}`, background: t.bg, color: t.text, padding: "3px 10px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
+      {children}
+    </span>
+  );
+}
+
+function EnvSkeleton({ width = "100%", height = 16, S }) {
+  return <div style={{ width, height, borderRadius: 6, background: S.envCards.skeletonBg, animation: "pulse 1.5s ease-in-out infinite" }} />;
+}
+
+function DetailRow({ label, value, badge, loading, S }) {
+  const ec = S.envCards;
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, borderBottom: `1px solid ${ec.innerBorder}`, padding: "10px 0" }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: ec.subtitle }}>{label}</span>
+      {loading ? <EnvSkeleton width={140} height={16} S={S} /> : (
+        <span style={{ display: "flex", alignItems: "center", gap: 8, textAlign: "right", fontSize: 13, fontWeight: 800, color: ec.value }}>
+          {value}
+          {badge ? <EnvBadge tone="slate" S={S}>{badge}</EnvBadge> : null}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function MiniProgress({ percent, loading, S }) {
+  const ec = S.envCards;
+  if (loading) return <EnvSkeleton height={8} S={S} />;
+  const tone = percent >= 85 ? ec.progressAmber : ec.progressBlue;
+  return (
+    <div style={{ marginTop: 10, height: 8, overflow: "hidden", borderRadius: 4, background: ec.progressBarBg }}>
+      <div style={{ width: `${percent}%`, height: "100%", borderRadius: 4, background: tone, transition: "width 0.3s" }} />
+    </div>
+  );
+}
+
+function HardwareMetric({ label, main, sub, percent, loading, S }) {
+  const ec = S.envCards;
+  const badgeTone = percent >= 85 ? "amber" : "blue";
+  return (
+    <div style={{ borderRadius: 14, border: `1px solid ${ec.innerBorder}`, background: ec.innerBg, padding: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: ec.subtitle }}>{label}</div>
+          {loading ? <EnvSkeleton width={120} height={20} S={S} /> : (
+            <div style={{ marginTop: 4, fontSize: 14, fontWeight: 800, lineHeight: "20px", color: ec.title, wordBreak: "break-word" }}>{main}</div>
+          )}
+        </div>
+        {typeof percent === "number" && !loading ? <EnvBadge tone={badgeTone} S={S}>{percent}%</EnvBadge> : null}
+        {typeof percent === "number" && loading ? <EnvSkeleton width={48} height={24} S={S} /> : null}
+      </div>
+      {loading ? <div style={{ marginTop: 8 }}><EnvSkeleton width={100} height={14} S={S} /></div> : (
+        <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600, lineHeight: "16px", color: ec.subtitle, wordBreak: "break-word" }}>{sub}</div>
+      )}
+      {typeof percent === "number" ? <MiniProgress percent={percent} loading={loading} S={S} /> : null}
+    </div>
+  );
+}
+
+function EnvCard({ title, icon: Icon, children, right, loading, S }) {
+  const ec = S.envCards;
+  return (
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, border: `1px solid ${ec.cardBorder}`, background: ec.cardBg, padding: 20, boxShadow: ec.cardShadow }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 14, background: ec.iconBg, color: ec.iconColor }}>
+            <Icon size={16} color={ec.iconColor} />
+          </div>
+          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: ec.title }}>{title}</h4>
+        </div>
+        {loading ? <EnvSkeleton width={80} height={24} S={S} /> : right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function makeEmptyEnvInfo() {
   return {
+    gpuInfo: { model: "", physicalCount: 0, visibleIds: [], selectedIds: "", driver: "", cuda: "" },
+    hardwareInfo: {
+      cpu: { model: "", cores: 0, threads: 0 },
+      memory: { used: "", total: "", percent: 0 },
+      disk: { used: "", total: "", percent: 0 },
+    },
+    finetuneEnvInfo: { python: "", pytorch: "", transformers: "", llamafactory: "" },
+    probeItems: {},
+    status: "",
+    checkedAt: "",
     gpu: "",
     accelerator: "",
     cuda: "",
@@ -55,14 +198,22 @@ function makeEmptyEnvInfo() {
     acceleratorVendor: "",
     finetuneTools: {},
     finetuneEnv: "",
-    probeItems: {},
     disk: "",
-    status: "",
   };
 }
 
 function normalizeEnvInfo(server = {}) {
   return {
+    gpuInfo: server.gpuInfo || { model: "", physicalCount: 0, visibleIds: [], selectedIds: "", driver: "", cuda: "" },
+    hardwareInfo: server.hardwareInfo || {
+      cpu: { model: "", cores: 0, threads: 0 },
+      memory: { used: "", total: "", percent: 0 },
+      disk: { used: "", total: "", percent: 0 },
+    },
+    finetuneEnvInfo: server.finetuneEnvInfo || { python: "", pytorch: "", transformers: "", llamafactory: "" },
+    probeItems: {},
+    status: server.status || "",
+    checkedAt: "",
     gpu: server.gpu || "",
     accelerator: server.accelerator || server.gpu || "",
     cuda: server.cuda || "",
@@ -74,9 +225,7 @@ function normalizeEnvInfo(server = {}) {
     acceleratorVendor: server.acceleratorVendor || "",
     finetuneTools: server.finetuneTools || {},
     finetuneEnv: server.finetuneEnv || "",
-    probeItems: {},
     disk: server.disk || "",
-    status: server.status || "",
   };
 }
 
@@ -111,6 +260,7 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
   const [testingServers, setTestingServers] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const draftProbeCodeRef = useRef(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const pageSize = 10;
   const selected = selectedId ? servers.find((s) => s.id === selectedId) : null;
@@ -163,6 +313,7 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
     setDraft(defaultDraft);
     setEnvInfo(makeEmptyEnvInfo());
     setSecretVisible({ token: false, password: false });
+    draftProbeCodeRef.current = null;
     setOpen(true);
   }
 
@@ -191,15 +342,19 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
   }
 
   async function saveServer() {
-    const validation = validateDraft();
+    const validation = validateDraft({ requireGpuIds: true });
     if (validation) {
       alert(validation);
       return;
     }
     try {
       if (isNew) {
-        const created = await createServer(draft);
+        const payload = draftProbeCodeRef.current
+          ? { ...draft, probeCode: draftProbeCodeRef.current }
+          : draft;
+        const created = await createServer(payload);
         setServers((list) => [...list, created]);
+        draftProbeCodeRef.current = null;
       } else {
         const updated = await updateServer(selectedId, draft);
         setServers((list) => list.map((s) => (s.id === selectedId ? updated : s)));
@@ -234,26 +389,40 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
     }
     setTesting(true);
     try {
-      const task = await probeDraftServer(draft);
-      await pollProbeTask(task.probeCode, (nextTask) => {
+      // 如果是编辑已有服务器，使用 probeServer 保存到数据库；否则用 probeDraftServer
+      const task = selectedId
+        ? await probeServer(selectedId)
+        : await probeDraftServer(draft);
+      const completedTask = await pollProbeTask(task.probeCode, (nextTask) => {
         applyProbeTaskToModal(nextTask);
+        // 如果是编辑已有服务器，更新 servers 列表中的数据
+        if (selectedId && nextTask.server) {
+          setServers((list) =>
+            list.map((s) => (s.id === selectedId ? { ...s, ...nextTask.server } : s))
+          );
+        }
       });
+      // 新增服务器时，记住 draft 探测的 probeCode，保存时关联到新服务器
+      if (!selectedId && completedTask) {
+        draftProbeCodeRef.current = completedTask.probeCode;
+      }
     } catch (error) {
       console.error("连通性测试失败:", error);
-      setEnvInfo({
-        gpu: "-",
-        accelerator: "-",
-        cuda: "-",
-        acceleratorRuntime: "-",
-        torch: "-",
-        aiFramework: "-",
+      setEnvInfo((prev) => ({
+        ...prev,
+        status: "offline",
+        gpuInfo: { ...prev.gpuInfo, model: "-", driver: "-", cuda: "-" },
+        hardwareInfo: {
+          cpu: { model: "-", cores: 0, threads: 0 },
+          memory: { used: "-", total: "-", percent: 0 },
+          disk: { used: "-", total: "-", percent: 0 },
+        },
+        finetuneEnvInfo: { python: "-", pytorch: "-", transformers: "-", llamafactory: "-" },
         acceleratorIds: draft.gpuIds,
         acceleratorCount: splitDeviceIds(draft.gpuIds).length,
-        acceleratorVendor: "",
         finetuneTools: {},
         disk: "-",
-        status: "offline",
-      });
+      }));
       alert(`连通性测试失败：${error.message}`);
     } finally {
       setTesting(false);
@@ -302,9 +471,9 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
     });
   }
 
-  function validateDraft() {
+  function validateDraft({ requireGpuIds = false } = {}) {
     if (!draft.name?.trim()) return "请填写服务器名称";
-    if (!draft.gpuIds?.trim()) return "请填写设备编号";
+    if (requireGpuIds && !draft.gpuIds?.trim()) return "请填写设备编号";
     if (!draft.workDir?.trim()) return "请填写工作目录";
     if (!draft.finetuneToolName?.trim()) return "请选择微调工具";
     if (!draft.finetuneToolContainerName?.trim()) return "请填写微调工具容器名";
@@ -336,25 +505,26 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
     setEnvInfo((current) => {
       const next = { ...current, probeItems: task.items || {}, status: task.server?.status || current.status };
       if (hardware.status === "succeeded") {
-        Object.assign(next, {
-          gpu: hardware.data?.gpu || next.gpu,
-          accelerator: hardware.data?.accelerator || hardware.data?.gpu || next.accelerator,
-          cuda: hardware.data?.acceleratorRuntime || next.cuda,
-          acceleratorRuntime: hardware.data?.acceleratorRuntime || next.acceleratorRuntime,
-          acceleratorIds: hardware.data?.acceleratorIds || next.acceleratorIds,
-          acceleratorCount: Number(hardware.data?.acceleratorCount || next.acceleratorCount || 0),
-          disk: hardware.data?.disk || next.disk,
-          diskUsed: hardware.data?.diskUsed ?? next.diskUsed,
-          diskTotal: hardware.data?.diskTotal ?? next.diskTotal,
-        });
+        const d = hardware.data || {};
+        if (d.gpuInfo) next.gpuInfo = d.gpuInfo;
+        if (d.hardwareInfo) next.hardwareInfo = d.hardwareInfo;
+        next.gpu = d.gpu || next.gpu;
+        next.accelerator = d.accelerator || d.gpu || next.accelerator;
+        next.cuda = d.acceleratorRuntime || next.cuda;
+        next.acceleratorRuntime = d.acceleratorRuntime || next.acceleratorRuntime;
+        next.acceleratorIds = d.acceleratorIds || next.acceleratorIds;
+        next.acceleratorCount = Number(d.acceleratorCount || next.acceleratorCount || 0);
+        next.disk = d.disk || next.disk;
+        next.checkedAt = new Date().toLocaleString();
       }
       if (finetuneEnv.status === "succeeded") {
-        Object.assign(next, {
-          torch: finetuneEnv.data?.torch || next.torch,
-          aiFramework: finetuneEnv.data?.aiFramework || next.aiFramework,
-          finetuneEnv: finetuneEnv.data?.finetuneEnv || next.finetuneEnv,
-          finetuneTools: finetuneEnv.data?.finetuneTools || next.finetuneTools,
-        });
+        const d = finetuneEnv.data || {};
+        if (d.finetuneEnvInfo) next.finetuneEnvInfo = d.finetuneEnvInfo;
+        next.torch = d.torch || next.torch;
+        next.aiFramework = d.aiFramework || next.aiFramework;
+        next.finetuneEnv = d.finetuneEnv || next.finetuneEnv;
+        next.finetuneTools = d.finetuneTools || next.finetuneTools;
+        if (!next.checkedAt) next.checkedAt = new Date().toLocaleString();
       }
       return next;
     });
@@ -552,69 +722,52 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
             <table style={S.table}>
             <thead>
               <tr>
-                <th style={S.th}>服务器名称</th>
-                <th style={S.th}>连接地址</th>
-                <th style={S.th}>连接方式</th>
-                <th style={S.th}>设备编号</th>
-                <th style={S.th}>状态</th>
-                <th style={S.th}>显卡</th>
-                <th style={S.th}>运行时</th>
-                <th style={S.th}>微调工具</th>
-                <th style={S.th}>磁盘</th>
-                <th style={S.th}>操作</th>
+                <th style={{ ...S.th, minWidth: 120 }}>服务器名称</th>
+                <th style={{ ...S.th, minWidth: 140 }}>连接地址</th>
+                <th style={{ ...S.th, width: 80 }}>连接方式</th>
+                <th style={{ ...S.th, width: 70 }}>状态</th>
+                <th style={{ ...S.th, minWidth: 130 }}>微调工具</th>
+                <th style={{ ...S.th, minWidth: 160 }}>显卡型号</th>
+                <th style={{ ...S.th, minWidth: 130 }}>磁盘</th>
+                <th style={{ ...S.th, width: 80 }}>操作</th>
               </tr>
             </thead>
             <tbody>
-              {currentServers.map((s) => (
+              {currentServers.map((s) => {
+                const gi = s.gpuInfo || {};
+                const hi = s.hardwareInfo || {};
+                const dsk = hi.disk || {};
+                const fi = s.finetuneEnvInfo || {};
+                const gpuDisplay = gi.model ? `${gi.physicalCount || 0}×${gi.model.replace(/^NVIDIA\s*/i, "")}` : (s.accelerator || s.gpu || "-");
+                const diskPercent = typeof dsk.percent === "number" && dsk.percent > 0 ? dsk.percent : (() => { const m = (s.disk || "").match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/); return m ? Math.round(parseFloat(m[1]) / parseFloat(m[2]) * 100) : null; })();
+                const diskText = dsk.used && dsk.total ? `${dsk.used} / ${dsk.total}` : (s.disk || "-");
+                const toolVersion = fi.llamafactory || (s.finetuneTools && s.finetuneTools[s.finetuneToolName]) || "";
+                return (
                 <tr key={s.id}>
-                  <td style={S.td}>
-                    <b>{s.name}</b>
-                  </td>
-                  <td style={S.td}>
-                    {getConnectionAddress(s)}
-                  </td>
+                  <td style={S.td}><b>{s.name}</b></td>
+                  <td style={S.td}>{getConnectionAddress(s)}</td>
                   <td style={S.td}>{s.accessType === "ssh" ? "SSH" : "Jupyter"}</td>
-                  <td style={S.td}>{s.gpuIds || "-"}</td>
                   <td style={S.td}>
                     {testingServers.has(s.id) ? <Spinner size="small" /> : <Badge status={s.status} statusPalette={statusPalette} />}
                   </td>
                   <td style={S.td}>
-                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.accelerator || s.gpu || "-")}
-                  </td>
-                  <td style={S.td}>
-                    {testingServers.has(s.id) ? <Spinner size="small" /> : (s.acceleratorRuntime || s.cuda || "-")}
-                  </td>
-                  <td style={S.td}>
-                    {testingServers.has(s.id) ? (
-                      <Spinner size="small" />
-                    ) : (
-                      s.finetuneToolName && s.finetuneTools && s.finetuneTools[s.finetuneToolName]
-                        ? `${s.finetuneToolName} ${s.finetuneTools[s.finetuneToolName]}`
-                        : "-"
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : (
+                      toolVersion ? `${s.finetuneToolName || "LLaMA-Factory"} ${toolVersion}` : (s.finetuneToolName || "-")
                     )}
                   </td>
                   <td style={S.td}>
-                    {testingServers.has(s.id) ? (
-                      <Spinner size="small" />
-                    ) : (
-                      (() => {
-                        const match = s.disk.match(/^([\d.]+)TB\s*\/\s*([\d.]+)TB$/);
-                        if (!match) return s.disk;
-                        const used = parseFloat(match[1]);
-                        const total = parseFloat(match[2]);
-                        const percent = Math.round((used / total) * 100);
-                        const color = percent > 80 ? "#ef4444" : percent > 60 ? "#f59e0b" : "#10b981";
-                        return (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <div style={{ fontSize: 12, color: S.page.background === "#0a0a0a" ? "#9ca3af" : "#64748b" }}>
-                              {s.disk} ({percent}%)
-                            </div>
-                            <div style={{ width: "100%", height: 6, background: S.page.background === "#0a0a0a" ? "#2d2d2d" : "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
-                              <div style={{ width: `${percent}%`, height: "100%", background: color, transition: "width 0.3s" }} />
-                            </div>
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : gpuDisplay}
+                  </td>
+                  <td style={S.td}>
+                    {testingServers.has(s.id) ? <Spinner size="small" /> : (
+                      diskPercent != null ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ fontSize: 12, color: S.envCards.subtitle }}>{diskText} ({diskPercent}%)</div>
+                          <div style={{ width: "100%", height: 6, background: S.envCards.progressBarBg, borderRadius: 3, overflow: "hidden" }}>
+                            <div style={{ width: `${diskPercent}%`, height: "100%", background: diskPercent > 80 ? S.envCards.progressAmber : S.envCards.progressBlue, transition: "width 0.3s", borderRadius: 3 }} />
                           </div>
-                        );
-                      })()
+                        </div>
+                      ) : diskText
                     )}
                   </td>
                   <td style={S.td}>
@@ -711,7 +864,8 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -739,9 +893,6 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
               <div style={{ display: "flex", gap: 8 }}>
                 <Button secondary onClick={() => setOpen(false)} S={S}>
                   取消
-                </Button>
-                <Button secondary onClick={testConnection} disabled={testing} S={S}>
-                  {testing ? "测试中..." : "连通性测试"}
                 </Button>
                 <Button onClick={saveServer} S={S}>保存</Button>
               </div>
@@ -816,17 +967,96 @@ export function ServersPage({ servers, setServers, reloadServers, S, statusPalet
             )}
 
             <div style={{ borderTop: `1px solid ${S.card.border.split(" ")[2]}`, marginTop: 24, marginBottom: 24 }} />
-            <SectionTitle title="环境信息" S={S} />
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-              <Info label="显卡型号" value={probeValue("hardware", envInfo.accelerator || envInfo.gpu || "-")} />
-              <Info label="驱动版本" value={probeValue("hardware", envInfo.acceleratorRuntime || envInfo.cuda || "-")} />
-              <Info label="显卡数量/编号" value={probeValue("hardware", formatGpuCount(envInfo.acceleratorIds || draft.gpuIds, envInfo.acceleratorCount))} />
-              <Info label="微调环境" value={probeValue("finetuneEnv", envInfo.finetuneEnv || (envInfo.aiFramework || envInfo.torch ? `PyTorch ${envInfo.aiFramework || envInfo.torch}` : "-"))} />
-              <Info label="微调工具版本" value={probeValue("finetuneEnv", envInfo.finetuneTools[draft.finetuneToolName] || "-")} />
-              <Info label="磁盘" value={probeValue("hardware", envInfo.disk || "-")} />
-              <Info label="状态" value={testing ? <Spinner size="small" /> : (envInfo.status ? <Badge status={envInfo.status} statusPalette={statusPalette} /> : "-")} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex", width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 14, background: S.envCards.sectionIconBg }}>
+                  <IconServer size={18} color={S.envCards.sectionIconColor} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: S.envCards.title }}>环境信息</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {testing ? (
+                  <EnvBadge tone="amber" S={S}><span style={{ display: "inline-flex", marginRight: 4 }}><IconRefreshCw size={12} color={S.envCards.badgeAmberText} /></span> 检测中</EnvBadge>
+                ) : envInfo.status === "online" ? (
+                  <EnvBadge tone="green" S={S}><span style={{ display: "inline-flex", marginRight: 4 }}><IconCheckCircle size={12} color={S.envCards.badgeGreenText} /></span> 在线</EnvBadge>
+                ) : envInfo.status === "offline" ? (
+                  <EnvBadge tone="amber" S={S}>离线</EnvBadge>
+                ) : (
+                  <EnvBadge tone="slate" S={S}>未检测</EnvBadge>
+                )}
+                {envInfo.checkedAt ? <span style={{ fontSize: 13, fontWeight: 600, color: S.envCards.subtitle }}>最近检测：{envInfo.checkedAt}</span> : null}
+                <button
+                  onClick={() => testConnection()}
+                  disabled={testing}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "4px 12px", borderRadius: 8, border: `1px solid ${S.envCards.cardBorder}`,
+                    background: S.envCards.cardBg, color: S.envCards.subtitle,
+                    fontSize: 13, fontWeight: 600, cursor: testing ? "not-allowed" : "pointer",
+                    opacity: testing ? 0.6 : 1, transition: "all 0.2s",
+                  }}
+                >
+                  <IconRefreshCw size={14} color={S.envCards.subtitle} />
+                  {testing ? "检测中" : (envInfo.gpuInfo?.model && envInfo.hardwareInfo?.cpu?.model) ? "重新检测" : "连通性检测"}
+                </button>
+              </div>
             </div>
+
+            {(() => {
+              const hwLoading = testing && envInfo.probeItems?.hardware?.status !== "succeeded";
+              const envLoading = testing && envInfo.probeItems?.finetuneEnv?.status !== "succeeded";
+              const hwFailed = envInfo.probeItems?.hardware?.status === "failed";
+              const envFailed = envInfo.probeItems?.finetuneEnv?.status === "failed";
+              const gi = envInfo.gpuInfo || {};
+              const hi = envInfo.hardwareInfo || {};
+              const fi = envInfo.finetuneEnvInfo || {};
+              const cpu = hi.cpu || {};
+              const mem = hi.memory || {};
+              const dsk = hi.disk || {};
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* 服务器硬件 - 直接展示 CPU / 内存 / 磁盘 */}
+                  {hwFailed ? (
+                    <div style={{ fontSize: 13, color: "#ef4444", padding: "8px 0" }}>{envInfo.probeItems?.hardware?.error || "硬件探测失败"}</div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+                      <HardwareMetric label="CPU" main={`${cpu.cores || 0} 核 / ${cpu.threads || 0} 线程`} sub={cpu.model || "-"} loading={hwLoading} S={S} />
+                      <HardwareMetric label="内存" main={`${mem.used || "-"} / ${mem.total || "-"}`} percent={typeof mem.percent === "number" && mem.percent > 0 ? mem.percent : undefined} loading={hwLoading} S={S} />
+                      <HardwareMetric label="磁盘" main={`${dsk.used || "-"} / ${dsk.total || "-"}`} percent={typeof dsk.percent === "number" && dsk.percent > 0 ? dsk.percent : undefined} loading={hwLoading} S={S} />
+                    </div>
+                  )}
+
+                  {/* GPU 资源 + 微调环境 */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <EnvCard title="GPU 资源" icon={IconZap} right={hwLoading ? null : <EnvBadge tone="blue" S={S}>{gi.physicalCount || 0} 张显卡</EnvBadge>} loading={false} S={S}>
+                      {hwFailed ? (
+                        <div style={{ fontSize: 13, color: "#ef4444", padding: "8px 0" }}>硬件探测失败</div>
+                      ) : (
+                        <div>
+                          <DetailRow label="显卡型号" value={gi.model || "-"} loading={hwLoading} S={S} />
+                          <DetailRow label="可见编号" value={(gi.visibleIds || []).join(", ") || "-"} loading={hwLoading} S={S} />
+                          <DetailRow label="驱动版本" value={gi.driver || "-"} loading={hwLoading} S={S} />
+                          <DetailRow label="CUDA 版本" value={gi.cuda || "-"} loading={hwLoading} S={S} />
+                        </div>
+                      )}
+                    </EnvCard>
+
+                    <EnvCard title="微调环境" icon={IconLayers} right={envLoading ? null : <EnvBadge tone="blue" S={S}>{draft.finetuneToolName || "LLaMA-Factory"}</EnvBadge>} loading={false} S={S}>
+                      {envFailed ? (
+                        <div style={{ fontSize: 13, color: "#ef4444", padding: "8px 0" }}>{envInfo.probeItems?.finetuneEnv?.error || "微调环境探测失败"}</div>
+                      ) : (
+                        <div>
+                          <DetailRow label="Python" value={fi.python || "-"} loading={envLoading} S={S} />
+                          <DetailRow label="PyTorch" value={fi.pytorch || "-"} badge={gi.cuda ? `CUDA ${gi.cuda}` : undefined} loading={envLoading} S={S} />
+                          <DetailRow label="Transformers" value={fi.transformers || "-"} loading={envLoading} S={S} />
+                          <DetailRow label="version" value={fi.llamafactory || "-"} loading={envLoading} S={S} />
+                        </div>
+                      )}
+                    </EnvCard>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       ) : null}
